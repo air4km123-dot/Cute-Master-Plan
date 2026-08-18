@@ -1,0 +1,41 @@
+{
+  "_source": "Google Sheet 1_W5tasUrIyqxUFwoJn1EZvYYd4s-tJvhZC5MmSX2ejc — tab 'สารบัญรวมลิงก์ GROWS project ของแต่ละแผนก'",
+  "_note": "Official department configuration. dept_code is the prefix used for every permanent Project_ID (Addendum V2 §3). Projects in the source sheet tagged CS1/CS2 are sub-teams of CS and are normalised to CS.",
+  "departments": [
+    { "dept_code": "BD",  "dept_name_th": "แผนกพัฒนาธุรกิจใหม่", "dept_name_en": "Business Development", "head_name": "พี่ปิง", "color": "#475569", "display_order": 1 },
+    { "dept_code": "RQ",  "dept_name_th": "แผนกวิจัยและพัฒนาสินค้าใหม่", "dept_name_en": "R&D / New Product Development", "head_name": "พี่เอก", "color": "#16a34a", "display_order": 2 },
+    { "dept_code": "PM",  "dept_name_th": "แผนกผลิต", "dept_name_en": "Production", "head_name": "พี่โอ๋", "color": "#ea580c", "display_order": 3 },
+    { "dept_code": "PS",  "dept_name_th": "แผนกสต๊อกและจัดซื้อ", "dept_name_en": "Stock & Procurement", "head_name": "พี่โย", "color": "#ca8a04", "display_order": 4 },
+    { "dept_code": "SV",  "dept_name_th": "แผนกบริการ", "dept_name_en": "Service", "head_name": "พี่เก๋", "color": "#dc2626", "display_order": 5 },
+    { "dept_code": "CS",  "dept_name_th": "แผนกขายและการตลาด ลูกค้าช่องทาง OEM", "dept_name_en": "Sales & Marketing — OEM Channel", "head_name": "พี่นุ่น", "color": "#2563eb", "display_order": 6 },
+    { "dept_code": "AS",  "dept_name_th": "แผนกขายและการตลาด ลูกค้าช่องทาง B2B", "dept_name_en": "Sales & Marketing — B2B Channel", "head_name": "พี่ชัช", "color": "#0891b2", "display_order": 7 },
+    { "dept_code": "IO",  "dept_name_th": "แผนกขายและการตลาด ลูกค้าช่องทางต่างประเทศ", "dept_name_en": "Sales & Marketing — International Channel", "head_name": "พี่ต้น IO", "color": "#0d9488", "display_order": 8 },
+    { "dept_code": "B2C", "dept_name_th": "แผนกขายและการตลาด ลูกค้าช่องทาง B2C", "dept_name_en": "Sales & Marketing — B2C Channel", "head_name": "พี่โอ๋", "color": "#7c3aed", "display_order": 9 },
+    { "dept_code": "AF",  "dept_name_th": "แผนกการเงินและบัญชี", "dept_name_en": "Finance & Accounting", "head_name": "พี่แบด", "color": "#db2777", "display_order": 10 },
+    { "dept_code": "PG",  "dept_name_th": "แผนกบุคคล", "dept_name_en": "Human Resources", "head_name": "พี่หนึ่ง", "color": "#65a30d", "display_order": 11 },
+    { "dept_code": "IS",  "dept_name_th": "แผนกกราฟฟิค และ ไอที", "dept_name_en": "Graphics & IT", "head_name": "พี่ต้น IS", "color": "#4f46e5", "display_order": 12 }
+  ],
+  "statuses": [
+    { "status_id": "NOT_STARTED", "status_name": "Not Started", "display_order": 1, "color": "#94a3b8" },
+    { "status_id": "PLANNING",    "status_name": "Planning",    "display_order": 2, "color": "#6366f1" },
+    { "status_id": "DEVELOPING",  "status_name": "Developing",  "display_order": 3, "color": "#f59e0b" },
+    { "status_id": "TESTING",     "status_name": "Testing",     "display_order": 4, "color": "#8b5cf6" },
+    { "status_id": "LIVE",        "status_name": "Live",        "display_order": 5, "color": "#10b981" },
+    { "status_id": "INTEGRATED",  "status_name": "Integrated",  "display_order": 6, "color": "#0ea5e9" },
+    { "status_id": "BLOCKED",     "status_name": "Blocked",     "display_order": 7, "color": "#ef4444" }
+  ],
+  "connection_types": [
+    { "type_id": "DATA_FLOW",       "type_name": "Data Flow",             "color": "#2563eb", "display_order": 1 },
+    { "type_id": "PROCESS_FLOW",    "type_name": "Process Flow",          "color": "#ea580c", "display_order": 2 },
+    { "type_id": "DEPENDENCY",      "type_name": "Dependency",            "color": "#dc2626", "display_order": 3 },
+    { "type_id": "SHARED_DATABASE", "type_name": "Shared Database",       "color": "#7c3aed", "display_order": 4 },
+    { "type_id": "APPROVAL_FLOW",   "type_name": "Approval Flow",         "color": "#0d9488", "display_order": 5 },
+    { "type_id": "AUTOMATION",      "type_name": "Automation",            "color": "#db2777", "display_order": 6 },
+    { "type_id": "REPORTING",       "type_name": "Reporting / Dashboard", "color": "#65a30d", "display_order": 7 }
+  ],
+  "status_mapping": {
+    "_note": "Original Thai status text from the sheet is preserved on every project in projects.status_original and is never deleted (§10).",
+    "กำลังดำเนินการ": "DEVELOPING",
+    "ศึกษารายละเอียดก่อนเริ่ม": "PLANNING"
+  }
+}

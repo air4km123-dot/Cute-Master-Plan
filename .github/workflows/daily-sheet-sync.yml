@@ -1,0 +1,46 @@
+name: Daily Google Sheet sync
+
+# 08:30 Asia/Bangkok. GitHub Actions cron is always UTC and has no timezone
+# option, so Thailand's fixed UTC+7 offset is subtracted here: 08:30 − 7h = 01:30 UTC.
+# Thailand does not observe daylight saving, so this stays correct year round.
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  # Lets an admin trigger the same run by hand from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply safe source updates from the company sheet
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+          SYNC_CRON_SECRET: ${{ secrets.SYNC_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PRODUCTION_URL:-}" ] || [ -z "${SYNC_CRON_SECRET:-}" ]; then
+            echo "::error::Set the PRODUCTION_URL and SYNC_CRON_SECRET repository secrets."
+            exit 1
+          fi
+
+          # --fail-with-body so a non-2xx still prints the server's explanation.
+          response=$(curl --silent --show-error --fail-with-body \
+            --max-time 120 \
+            --retry 3 --retry-delay 20 --retry-all-errors \
+            -X POST "${PRODUCTION_URL%/}/api/sync/google-sheet/auto" \
+            -H "Authorization: Bearer ${SYNC_CRON_SECRET}" \
+            -H "Content-Length: 0")
+
+          echo "$response"
+
+          # Surface the counts on the run summary so the history is readable
+          # without opening the app.
+          {
+            echo "### Google Sheet sync"
+            echo ""
+            echo '```json'
+            echo "$response"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

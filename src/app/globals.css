@@ -1,0 +1,457 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/base.css";
+
+/* =====================================================================
+   Air4 Master Plan — "drawing sheet"
+
+   Air4 builds machines, so the master plan is presented as a drafted
+   engineering sheet rather than a dashboard. The rule that holds the whole
+   thing together:
+
+     COLOUR IS RESERVED. Hue carries exactly two meanings — department
+     (card accent) and status (badge). Everything structural is achromatic
+     ink at different line weights. With twelve department colours on one
+     canvas, any third colour system would turn the sheet to mud.
+
+   Line weight, dash pattern and hatching carry the rest of the grammar.
+   ===================================================================== */
+
+@theme {
+  --color-sheet: #f2f4f5;
+  --color-sheet-raised: #ffffff;
+  --color-grid: #dde3e7;
+  --color-rule: #c3cdd4;
+  --color-rule-strong: #93a3ae;
+  --color-ink: #16202a;
+  --color-ink-soft: #5a6b78;
+  --color-ink-faint: #8695a1;
+  --color-stamp: #b23a48;
+
+  --font-draft: "Arial Narrow", "Archivo Narrow", "Roboto Condensed", "Segoe UI", sans-serif;
+  --font-ui: "Leelawadee UI", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-data: Consolas, "Cascadia Mono", ui-monospace, "SF Mono", monospace;
+
+  --radius-none: 0px;
+}
+
+/* ---------------------------------------------------------------- base */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-sheet);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------- type fixtures */
+
+/* Drafting annotation: condensed, uppercase, widely tracked. Used for every
+   label on the sheet so the eye reads them as annotation, not content. */
+.anno {
+  font-family: var(--font-draft);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  line-height: 1.2;
+}
+
+.anno-lg {
+  font-family: var(--font-draft);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Small explanatory text that sits next to annotation but reads as prose. */
+.note {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+/* Stamped part number. Project IDs are permanent identifiers and are always
+   set in mono so they read as keys, never as prose. */
+.partno {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+/* ------------------------------------------------------------- surfaces */
+
+/* The drafting grid. Two weights, like real graph paper. */
+.sheet-grid {
+  background-color: var(--color-sheet);
+  background-image:
+    linear-gradient(to right, var(--color-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px),
+    linear-gradient(to right, var(--color-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px);
+  background-size:
+    100px 100px,
+    100px 100px,
+    20px 20px,
+    20px 20px;
+  background-position: -1px -1px;
+}
+
+.presenting .sheet-grid {
+  background-image: none;
+}
+
+.panel {
+  background: var(--color-sheet-raised);
+  border: 1px solid var(--color-rule);
+}
+
+/* Registration ticks — drafting corner marks instead of rounded corners. */
+.ticked {
+  position: relative;
+}
+.ticked::before,
+.ticked::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  pointer-events: none;
+  border-color: var(--color-rule-strong);
+}
+.ticked::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+.ticked::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+
+/* -------------------------------------------------------------- buttons */
+
+.btn {
+  font-family: var(--font-draft);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border: 1px solid var(--color-ink);
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.btn:hover:not(:disabled) {
+  background: var(--color-ink);
+  color: var(--color-sheet-raised);
+}
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.btn-solid {
+  background: var(--color-ink);
+  color: var(--color-sheet-raised);
+}
+.btn-solid:hover:not(:disabled) {
+  background: #000;
+}
+.btn-quiet {
+  border-color: var(--color-rule);
+  color: var(--color-ink-soft);
+}
+.btn-quiet:hover:not(:disabled) {
+  background: var(--color-rule);
+  color: var(--color-ink);
+}
+.btn-stamp {
+  border-color: var(--color-stamp);
+  color: var(--color-stamp);
+}
+.btn-stamp:hover:not(:disabled) {
+  background: var(--color-stamp);
+  color: #fff;
+}
+
+/* --------------------------------------------------------------- fields */
+
+.field {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--color-rule);
+  background: var(--color-sheet-raised);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+.field:focus {
+  outline: none;
+  border-color: var(--color-ink);
+  box-shadow: inset 0 -2px 0 var(--color-ink);
+}
+.field:disabled {
+  background: var(--color-sheet);
+  color: var(--color-ink-faint);
+}
+select.field {
+  cursor: pointer;
+}
+textarea.field {
+  resize: vertical;
+  line-height: 1.55;
+}
+
+/* ---------------------------------------------------------- status mark */
+
+/* Status badge. The only place besides the department accent where hue
+   appears. Colour comes from status_config, applied inline. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-draft);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------- project card */
+
+.card {
+  position: relative;
+  background: var(--color-sheet-raised);
+  border: 1.5px solid var(--color-ink);
+  padding: 0;
+  cursor: pointer;
+  transition: box-shadow 120ms ease, transform 120ms ease;
+}
+.card:hover {
+  box-shadow: 3px 3px 0 var(--color-rule-strong);
+}
+
+/* Project_Type — border style only, never colour, never status (§5, §32). */
+.card--future {
+  border-style: dashed;
+  border-width: 1.5px;
+  border-color: var(--color-ink-soft);
+}
+
+.card--selected {
+  box-shadow: 0 0 0 2px var(--color-ink), 4px 4px 0 var(--color-rule-strong);
+}
+
+.card--faded {
+  opacity: 0.22;
+}
+
+/* Blocked projects get a hatch so they read across a meeting room even when
+   the status badge is too small to see. The one use of texture on the sheet. */
+.card--blocked {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 7px,
+    rgba(178, 58, 72, 0.09) 7px 9px
+  );
+}
+
+/* Department accent — a solid rule across the card head. */
+.card-accent {
+  height: 5px;
+  width: 100%;
+}
+
+/* ------------------------------------------------------- progress scale */
+
+/* Drafted scale rule with quarter ticks, not a rounded pill. */
+.scale {
+  position: relative;
+  height: 9px;
+  border: 1px solid var(--color-ink);
+  background: var(--color-sheet);
+  overflow: hidden;
+}
+.scale-fill {
+  height: 100%;
+  background: var(--color-ink);
+}
+.scale-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-rule-strong);
+  mix-blend-mode: difference;
+}
+
+/* ------------------------------------------------------------ title block */
+
+/* The signature element: a real drawing title block, bottom right, holding
+   the legend the spec requires always be accessible (§27). */
+.titleblock {
+  background: var(--color-sheet-raised);
+  border: 2px solid var(--color-ink);
+  box-shadow: 4px 4px 0 rgba(22, 32, 42, 0.13);
+}
+.tb-row {
+  display: grid;
+  border-bottom: 1px solid var(--color-rule);
+}
+.tb-row:last-child {
+  border-bottom: none;
+}
+.tb-cell {
+  padding: 6px 9px;
+  border-right: 1px solid var(--color-rule);
+  min-width: 0;
+}
+.tb-cell:last-child {
+  border-right: none;
+}
+
+/* ------------------------------------------------------------ edit stamp */
+
+/* Edit mode is unmistakable: a stamped rule across the top of the sheet. */
+.editing-rail {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-stamp) 0 10px,
+    #9d3140 10px 20px
+  );
+}
+
+/* ------------------------------------------------------------- xyflow */
+
+.react-flow__node {
+  font-family: var(--font-ui);
+}
+.react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__edge-path {
+  transition: opacity 120ms ease;
+}
+.react-flow__edge.faded {
+  opacity: 0.07;
+}
+.react-flow__edge-textbg {
+  fill: var(--color-sheet-raised);
+}
+.react-flow__edge-text {
+  font-family: var(--font-draft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: var(--color-ink);
+}
+
+/* Department zone on the sheet. */
+.zone {
+  border: 1px solid var(--color-rule-strong);
+  background: rgba(255, 255, 255, 0.45);
+}
+.presenting .zone {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+/* --------------------------------------------------------------- table */
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.tbl th {
+  font-family: var(--font-draft);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  text-align: left;
+  padding: 7px 9px;
+  border-bottom: 1.5px solid var(--color-ink);
+  white-space: nowrap;
+}
+.tbl td {
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--color-rule);
+  vertical-align: top;
+}
+.tbl tbody tr:hover {
+  background: rgba(147, 163, 174, 0.09);
+}
+
+/* --------------------------------------------------------- scrollbars */
+
+.thin-scroll::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: var(--color-sheet);
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-rule-strong);
+  border: 2px solid var(--color-sheet);
+}
+
+/* ------------------------------------------------- presentation mode */
+
+.presenting {
+  font-size: 15px;
+}
+.presenting .hide-when-presenting {
+  display: none !important;
+}

@@ -1,0 +1,47 @@
+สรุปโปรเจกต์หลังประชุม 1 on 1 — รายการสำหรับพัฒนารายละเอียดต่อ							
+							
+ลำดับ	แผนก	ชื่อ Project	Priority	ผู้รับผิดชอบ	Brief เบื้องต้นจากที่ประชุม	สถานะ / Next Step	หมายเหตุจากที่ประชุม
+1	CS1	CS1 Dashboard	5	สุ่ย	Dashboard ข้อมูลจำนวนรถเข้า ยอดขาย	กำลังดำเนินการ	
+2	CS2	B2B Lead Pipeline Scraper	3	สุ่ย	กรองและรวบรวม Leads ใหม่ให้ได้จำนวนมากขึ้น พร้อมวิเคราะห์หาศูนย์บริการที่มีจำนวนรถเข้าใช้บริการสูง	ศึกษารายละเอียดก่อนเริ่ม	
+3	AS	Sales Shared Library	3	กิ๊ฟท์	จัดทำคลังข้อมูลกลางสำหรับทุกแผนกของฝ่ายขาย โดยใช้ Google Drive	ศึกษารายละเอียดก่อนเริ่ม	
+4	AS	Sales Backend Data Integration	3	กิ๊ฟท์	เชื่อมข้อมูลหลังบ้านของฝ่ายขายให้ลิงก์ถึงกันและลดการ Input ซ้ำ รวบรวม Pain Points ของฝ่ายขายทั้งหมด รวมเอกสาร/ข้อมูลที่เกี่ยวข้อง เช่น ใบขอบิลขาย และ Stock Card	ศึกษารายละเอียดก่อนเริ่ม	
+5	IO	Vehicle Cleaning Before–After Library	5	ปลั๊ก	จัดทำ Library หน้าบ้านสำหรับรวบรวมรุ่นรถที่เคยล้าง พร้อมข้อมูล Before–After ในรูปแบบ Web App	กำลังดำเนินการ	
+6	IO	OEM Operations Dashboard	4	ปลั๊ก	จัดทำ Dashboard หลังบ้านรวมข้อมูลสำคัญ เช่น ยอดขาย เครื่อง และทริป	ศึกษารายละเอียดก่อนเริ่ม	
+7	IO	OEM QuickFit Selling Kit	2	ปลั๊ก	จัดทำ Selling Kit สำหรับ OEM QuickFit ประกอบด้วย Proposal, Market Size, Break-even Point และ Certificate สำหรับ Brand Owner	ศึกษารายละเอียดก่อนเริ่ม	
+8	B2C	AirPro Backend System Improvement	3	กระถิน	ปรับปรุงระบบหลังบ้าน AirPro เช่น ตารางนัดหมายลูกค้าและข้อมูลค่าคอมมิชชั่น ในรูปแบบ Web App	ศึกษารายละเอียดก่อนเริ่ม	
+9	B2C	AirPro Frontend System Improvement	5	กระถิน	ปรับปรุงข้อมูลและระบบหน้าบ้านของ AirPro POS	ศึกษารายละเอียดก่อนเริ่ม	
+10	PM	Smart PR & WI Planning System	5	อ้อม	รวบรวมความต้องการเพื่อคำนวณจำนวนสั่งซื้อและ BOM เมื่อฝ่ายขาย Input ความต้องการ ระบบแจ้งเตือนรายการที่ Lead Time เกินหรือไม่ทัน เพื่อให้จัดซื้อพิจารณาเร่งงาน และสรุปวันพร้อมเครื่องแบบ Real-time เป้าหมายคือมองเห็น Lead Time ทุกครั้งที่มีการร้องขอ	ศึกษารายละเอียดก่อนเริ่ม	
+11	PM	Workforce Utilization Management	3	อ้อม	เก็บข้อมูล Manpower และ Man-hours ของทุกแผนก ระบุทักษะ/งานที่แต่ละคนทำได้ รวมชั่วโมงงานล่วงหน้าและงานฉุกเฉิน	ศึกษารายละเอียดก่อนเริ่ม	
+12	SV	SV Backend Workflow Upgrade	2	มายด์	อัปเกรดงานหลังบ้านของ SV โดยปรับ Flow การเปิดเคสและอัปเดตการ์ดสำหรับ S3–S6	ศึกษารายละเอียดก่อนเริ่ม	
+13	SV	Machine Status & Capacity Utilization Dashboard	3	เปิ้ล	ติดตามสถานะเครื่องแต่ละเครื่อง, Machine Capacity Utilization, ความเชื่อมโยงกับยอดขาย, Counter และยอดมัดจำ ผ่าน Dashboard	ศึกษารายละเอียดก่อนเริ่ม	
+14	SV	Injector Troubleshooting	5	ต๋อย	รวบรวมแนวทางสำหรับการแก้ปัญหาหัวฉีด	ศึกษารายละเอียดก่อนเริ่ม	
+15	SV	Demo & Training Standard (SOP)	3	ปิ๊ก	จัดทำมาตรฐานสำหรับ Training และ Demo รวมถึง SOP สำหรับผู้ปฏิบัติงาน	ศึกษารายละเอียดก่อนเริ่ม	
+16	RQ	RQ Online Document Repository	2	แพร	จัดทำคลังข้อมูลหลังบ้านออนไลน์เพื่อลดขั้นตอนการขอไฟล์ โดยใช้ Google Drive	ศึกษารายละเอียดก่อนเริ่ม	
+17	RQ	RQ Online Documentation & Workflow Upgrade	3	แพร	ปรับปรุงเอกสาร WP ให้เห็นภาพมากขึ้นด้วย Drawing/3D และปรับ Workflow ก่อนอนุมัติ เช่น 4M, IE, Incoming และ Checklist รถใหม่	ศึกษารายละเอียดก่อนเริ่ม	
+18	RQ	Competitor Product Benchmark Test	5	อาร์ท	ทดสอบผลิตภัณฑ์คู่แข่งทั้งภายในและภายนอก เพื่อวิเคราะห์จุดแข็งและจุดอ่อน	ศึกษารายละเอียดก่อนเริ่ม	
+19	RQ	Government Grant Opportunity Scraper	4	อีฟ	ทำ Scraper สำหรับติดตามข่าวทุนจากหน่วยงานภาครัฐภายนอก พร้อมรวบรวมข้อมูลหน่วยงานที่เกี่ยวข้อง	ศึกษารายละเอียดก่อนเริ่ม	
+20	PS	Procurement History Dashboard	4	เจี๊ยบ	เพิ่ม Dashboard ข้อมูลประวัติการสั่งซื้อ เช่น ราคา จำนวน ผู้ขาย การซื้อล่าสุด และเครดิตการซื้อ	ศึกษารายละเอียดก่อนเริ่ม	
+21	IS	Web App Data Security & Access Control	5	เอ็กซ์	กำหนดกฎและระดับการเข้าถึงข้อมูลสำหรับ Web App และศึกษาการใช้งาน Google Workspace Enterprise	ศึกษารายละเอียดก่อนเริ่ม	
+22	IS	Graphic Asset Library	3	เฟิร์ส	จัดทำคลังรวมไฟล์กราฟิกของบริษัท	ศึกษารายละเอียดก่อนเริ่ม	
+23	IS	AI Awareness Program	5	เอ็กซ์	จัดทำโครงการสร้างความตระหนักและความเข้าใจด้าน AI	ศึกษารายละเอียดก่อนเริ่ม	
+24	IS	Learning Hub & Knowledge Management	3	เอ็กซ์	จัดทำ Learning Hub สำหรับรวบรวมและจัดการองค์ความรู้ (Knowledge Management)	ศึกษารายละเอียดก่อนเริ่ม	
+25	AF	POS System	2	อ๊อฟ	พิจารณาและพัฒนาระบบ POS สำหรับการใช้งานของบริษัทตามความต้องการของหน้าร้านและบัญชี	ศึกษารายละเอียดก่อนเริ่ม	
+26	AF	Stock Internal Audit	5	วันใหม่	ตรวจสอบ Stock ภายใน โดยแยกประเภท Stock ของฝ่ายขาย บริการ และบุคคล	ศึกษารายละเอียดก่อนเริ่ม	
+27	AF	Online Delivery Document Tracking System	2	การ์ตูน	พัฒนาระบบเอกสารสายส่งออนไลน์ พร้อมติดตามสถานะเอกสารที่ต้องนำกลับมาส่งบัญชี	ศึกษารายละเอียดก่อนเริ่ม	
+28	AF	Expense Audit	5	แตงโม	แยกประเภท Expense เช่น จัดซื้อ เบี้ยเลี้ยง ค่าคอมมิชชั่น และ Booster กำหนดกติกาการสุ่มตรวจ วิธีตรวจสอบ และดูประวัติย้อนหลัง	ศึกษารายละเอียดก่อนเริ่ม	
+29	AF	Cash Flow Analysis	4	ขวัญ	วิเคราะห์ Cash Flow โดยพิจารณา Weighted Average Volume, จำนวนวันเครดิต และจำนวนเงิน	ศึกษารายละเอียดก่อนเริ่ม	
+30	AF	Product & Service Center Margin Analysis	4	แอน	คำนวณ Margin รายชุดหรือรายศูนย์ โดยรวมต้นทุน COGS, ค่าช่าง, ค่าคอมมิชชั่น และ Booster จัดกลุ่มระดับ Margin ด้วยสี และทำ Dashboard ที่กรองข้อมูลได้	ศึกษารายละเอียดก่อนเริ่ม	
+31	AF	Management Budget Dashboard	4	อ๊อฟ	จัดทำ Dashboard สำหรับผู้บริหาร รวมงบ BU, Margin Tracker, Revenue, Cost และ Cash Flow เพื่อใช้ประกอบการตัดสินใจและกรองข้อมูลได้	ศึกษารายละเอียดก่อนเริ่ม	
+32	PG	Time Attendance Dashboard	3	แก้ว	จัดทำ Time Attendance Dashboard	ศึกษารายละเอียดก่อนเริ่ม	
+33	PG	Online Payroll Summary	3	แก้ว	จัดทำ Payroll Summary ในรูปแบบออนไลน์และ Dashboard	ศึกษารายละเอียดก่อนเริ่ม	
+34	PG	PI Evaluation Reminder System	3	แก้ว	พัฒนาระบบแจ้งเตือนการประเมิน PI อัตโนมัติผ่าน LINE	ศึกษารายละเอียดก่อนเริ่ม	
+35	PG	Online Vehicle Booking System	3	ฝน	พัฒนาระบบจองรถออนไลน์	ศึกษารายละเอียดก่อนเริ่ม	
+36	PG	Housekeeping Inspection System	3	ฝน	พัฒนาระบบสำหรับตรวจสอบและติดตามการทำงานของแม่บ้าน	ศึกษารายละเอียดก่อนเริ่ม	
+37	PG	Contract Expiry Reminder System	3	ฝน	พัฒนาระบบแจ้งเตือนวันหมดอายุสัญญา	ศึกษารายละเอียดก่อนเริ่ม	
+38	PG	Fleet Card & Easy Pass AI Audit	3	ฝน	ตรวจสอบ Fleet Card และ Easy Pass ด้วย AI พร้อมจัดทำแผนการใช้รถในรูปแบบออนไลน์	ศึกษารายละเอียดก่อนเริ่ม	
+39	PG	Recruitment Pipeline & HR Talent Pool	3	ส้อ	พัฒนา Recruitment Pipeline และฐาน HR Talent Pool	ศึกษารายละเอียดก่อนเริ่ม	
+40	PG	Recruitment Partner Management	3	ส้อ	จัดระบบบริหาร Recruitment Partner	ศึกษารายละเอียดก่อนเริ่ม	
+41	PG	Employee Data Hub	3	แก้ว	รวบรวมข้อมูลพนักงาน เช่น ประวัติการฝึกอบรม MBTI ข้อมูลส่วนตัว และประสบการณ์ทำงาน	ศึกษารายละเอียดก่อนเริ่ม	
+42	BD	Corporate Master Plan (Blueprint)	5	เมย์	จัดทำ Master Plan ระดับองค์กรในรูปแบบ Blueprint	ศึกษารายละเอียดก่อนเริ่ม	
+43	BD	Strategic Data Intelligence	5	ปิง	รวบรวม Strategic Data เช่น ข่าวจากการ Scraping และข้อมูล Market Size	ศึกษารายละเอียดก่อนเริ่ม	
+44	BD	Competitor Intelligence Database	3	ออม	จัดทำฐานข้อมูลคู่แข่ง โดยใช้ข้อมูล DBD และระบุแบรนด์/ธุรกิจของคู่แข่งโดยตรง	ศึกษารายละเอียดก่อนเริ่ม	

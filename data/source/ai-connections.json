@@ -1,0 +1,67 @@
+{
+  "_note": "Initial AI architecture review of the 44 approved projects (Addendum V2 §38). Every row below is derived from the wording of the project briefs in the source sheet. These are SUGGESTIONS ONLY — they load with connection_status = AI_SUGGESTED and are not Air4 architecture until a human approves them (§12). Nothing here modifies official project data.",
+  "_proposed_by": "AI_ANALYSIS",
+  "connections": [
+    { "source": "PG-010", "target": "PG-001", "type": "DATA_FLOW", "label": "Employee Master", "confidence": "HIGH", "reason": "PG-001 tracks attendance per employee; PG-010 is the stated hub for employee records. Attendance cannot be reported without an employee master." },
+    { "source": "PG-010", "target": "PG-002", "type": "DATA_FLOW", "label": "Employee Master", "confidence": "HIGH", "reason": "Payroll summary must resolve each payslip to an employee record held in PG-010." },
+    { "source": "PG-001", "target": "PG-002", "type": "DATA_FLOW", "label": "Attendance Hours", "confidence": "HIGH", "reason": "Payroll is normally calculated from attendance hours produced by PG-001." },
+    { "source": "PG-010", "target": "PG-003", "type": "DATA_FLOW", "label": "Employee Records", "confidence": "MEDIUM", "reason": "PI evaluation reminders must be addressed to specific employees and their evaluation cycle." },
+    { "source": "PG-008", "target": "PG-010", "type": "DATA_FLOW", "label": "New Hire Data", "confidence": "MEDIUM", "reason": "Candidates accepted through the recruitment pipeline become employee records in PG-010." },
+    { "source": "PG-009", "target": "PG-008", "type": "DATA_FLOW", "label": "Partner Candidates", "confidence": "MEDIUM", "reason": "Recruitment partners supply the candidates that enter the pipeline." },
+    { "source": "PG-010", "target": "PM-002", "type": "DATA_FLOW", "label": "Skill Matrix", "confidence": "HIGH", "reason": "PM-002 explicitly requires ทักษะ/งานที่แต่ละคนทำได้ per person, which is employee master data held by PG-010." },
+    { "source": "PG-002", "target": "AF-005", "type": "DATA_FLOW", "label": "Payroll Cost", "confidence": "HIGH", "reason": "Cash flow analysis needs the payroll outflow and its timing." },
+    { "source": "PG-004", "target": "PG-007", "type": "DATA_FLOW", "label": "Vehicle Booking Records", "confidence": "HIGH", "reason": "PG-007 audits fleet card and toll usage and builds a vehicle usage plan; the booking records in PG-004 are the reference for expected usage." },
+    { "source": "PG-007", "target": "AF-004", "type": "DATA_FLOW", "label": "Fuel & Toll Expense", "confidence": "MEDIUM", "reason": "Fleet card and Easy Pass charges are an expense category in the AF-004 audit scope." },
+    { "source": "PG-006", "target": "AF-003", "type": "DATA_FLOW", "label": "Contract Documents", "confidence": "LOW", "reason": "Expiring contracts generate documents that flow back to accounting; relationship needs confirmation." },
+
+    { "source": "PM-002", "target": "PM-001", "type": "DATA_FLOW", "label": "Manpower Capacity", "confidence": "MEDIUM", "reason": "Committing a machine-ready date in PM-001 requires knowing available man-hours from PM-002." },
+    { "source": "PM-001", "target": "PS-001", "type": "PROCESS_FLOW", "label": "PR & Lead Time", "direction": "BIDIRECTIONAL", "confidence": "HIGH", "reason": "PM-001 issues purchase requisitions and needs lead time back from procurement to flag items ที่ Lead Time เกิน. Information moves both ways." },
+    { "source": "AS-002", "target": "PM-001", "type": "DATA_FLOW", "label": "Sales Demand Input", "confidence": "HIGH", "reason": "PM-001 states the calculation starts เมื่อฝ่ายขาย Input ความต้องการ." },
+    { "source": "RQ-002", "target": "PM-001", "type": "DATA_FLOW", "label": "BOM & Drawing", "confidence": "HIGH", "reason": "PM-001 calculates BOM; the approved WP documents and drawings originate in RQ-002." },
+    { "source": "PM-001", "target": "SV-002", "type": "DATA_FLOW", "label": "Machine Ready Date", "confidence": "MEDIUM", "reason": "Machine availability tracking depends on the real-time ready date produced by PM-001." },
+    { "source": "SV-002", "target": "PM-001", "type": "DATA_FLOW", "label": "Machine Demand", "confidence": "MEDIUM", "reason": "Capacity utilisation signals when additional machines must be produced." },
+
+    { "source": "PS-001", "target": "AF-002", "type": "DATA_FLOW", "label": "Stock Movement", "confidence": "HIGH", "reason": "The internal stock audit reconciles against purchase and receipt history held by PS-001." },
+    { "source": "AF-002", "target": "PS-001", "type": "DATA_FLOW", "label": "Stock Audit Findings", "confidence": "MEDIUM", "reason": "Audit discrepancies feed back into procurement and stock control." },
+    { "source": "AS-002", "target": "AF-002", "type": "SHARED_DATABASE", "label": "Stock Card", "confidence": "HIGH", "reason": "AS-002 explicitly lists Stock Card as a document it consolidates; AF-002 audits the same stock. Likely shared master data rather than two copies." },
+
+    { "source": "AF-001", "target": "AF-006", "type": "DATA_FLOW", "label": "Sales Transactions", "confidence": "HIGH", "reason": "Margin per set or per service centre is computed from POS transaction lines." },
+    { "source": "AF-002", "target": "AF-006", "type": "DATA_FLOW", "label": "COGS", "confidence": "MEDIUM", "reason": "AF-006 lists ต้นทุน COGS as an input; stock valuation is the usual source." },
+    { "source": "AF-006", "target": "AF-007", "type": "DATA_FLOW", "label": "Margin Tracker", "confidence": "HIGH", "reason": "AF-007 explicitly lists Margin Tracker as a component of the executive dashboard." },
+    { "source": "AF-005", "target": "AF-007", "type": "DATA_FLOW", "label": "Cash Flow", "confidence": "HIGH", "reason": "AF-007 explicitly lists Cash Flow as a component of the executive dashboard." },
+    { "source": "AF-004", "target": "AF-007", "type": "DATA_FLOW", "label": "Expense Summary", "confidence": "MEDIUM", "reason": "AF-007 reports Cost; the categorised expense data lives in AF-004." },
+    { "source": "AF-003", "target": "AF-004", "type": "PROCESS_FLOW", "label": "Delivery Documents", "confidence": "MEDIUM", "reason": "Documents returned to accounting are the supporting evidence the expense audit samples." },
+    { "source": "AF-001", "target": "B2C-002", "type": "SHARED_DATABASE", "label": "POS Data", "confidence": "MEDIUM", "reason": "POSSIBLE DUPLICATE: AF-001 builds a company POS while B2C-002 improves the AirPro POS front end. Confirm whether these are one system or two." },
+    { "source": "B2C-001", "target": "AF-004", "type": "DATA_FLOW", "label": "Commission Data", "confidence": "HIGH", "reason": "B2C-001 holds ข้อมูลค่าคอมมิชชั่น and AF-004 audits ค่าคอมมิชชั่น as an expense category." },
+    { "source": "B2C-001", "target": "B2C-002", "type": "SHARED_DATABASE", "label": "Appointment & Commission", "confidence": "HIGH", "reason": "Front end and back end of the same AirPro system operate on one data set." },
+
+    { "source": "SV-001", "target": "SV-002", "type": "DATA_FLOW", "label": "Case & Card Status", "confidence": "HIGH", "reason": "Machine status reporting depends on the case and card updates produced by the S3–S6 workflow." },
+    { "source": "SV-004", "target": "SV-003", "type": "PROCESS_FLOW", "label": "Troubleshooting SOP", "confidence": "MEDIUM", "reason": "Injector troubleshooting guidance is a standard operating procedure produced under SV-004." },
+    { "source": "SV-003", "target": "IS-004", "type": "DATA_FLOW", "label": "Technical Knowledge", "confidence": "MEDIUM", "reason": "The Learning Hub is the stated destination for organisational knowledge." },
+    { "source": "SV-004", "target": "IS-004", "type": "DATA_FLOW", "label": "Training Material", "confidence": "MEDIUM", "reason": "Training and demo standards are knowledge assets the Learning Hub should hold." },
+    { "source": "SV-002", "target": "AF-006", "type": "DATA_FLOW", "label": "Service Center Volume", "confidence": "MEDIUM", "reason": "AF-006 computes margin รายศูนย์, which requires per-centre service volume." },
+
+    { "source": "CS-001", "target": "AF-007", "type": "REPORTING", "label": "Vehicle Volume & Sales", "confidence": "MEDIUM", "reason": "Revenue on the executive dashboard should include the OEM channel volume tracked by CS-001." },
+    { "source": "CS-002", "target": "AS-002", "type": "DATA_FLOW", "label": "Qualified Leads", "confidence": "HIGH", "reason": "Leads gathered by the scraper must land in the sales back-office system to be worked." },
+    { "source": "CS-002", "target": "BD-003", "type": "DATA_FLOW", "label": "Service Center Data", "confidence": "MEDIUM", "reason": "Service centres identified while scraping overlap with the competitor database scope." },
+    { "source": "AS-001", "target": "AS-002", "type": "SHARED_DATABASE", "label": "Sales Documents", "confidence": "MEDIUM", "reason": "The shared library is the document store the integrated back end should read from rather than duplicate." },
+
+    { "source": "IO-001", "target": "IO-003", "type": "DATA_FLOW", "label": "Before–After Evidence", "confidence": "MEDIUM", "reason": "The selling kit proposal is stronger with cleaning evidence from the library." },
+    { "source": "IO-001", "target": "B2C-002", "type": "DATA_FLOW", "label": "Vehicle Model Library", "confidence": "MEDIUM", "reason": "The B2C front end can present the same vehicle model coverage data." },
+    { "source": "IO-002", "target": "AF-007", "type": "REPORTING", "label": "OEM Sales & Trips", "confidence": "MEDIUM", "reason": "Executive dashboard revenue should include the OEM channel figures from IO-002." },
+    { "source": "IS-002", "target": "IO-003", "type": "DATA_FLOW", "label": "Graphic Assets", "confidence": "MEDIUM", "reason": "The selling kit is produced from company graphic assets." },
+    { "source": "RQ-003", "target": "IO-003", "type": "DATA_FLOW", "label": "Product Comparison", "confidence": "MEDIUM", "reason": "Benchmark strengths and weaknesses support the proposal in the selling kit." },
+
+    { "source": "RQ-001", "target": "RQ-002", "type": "SHARED_DATABASE", "label": "WP Documents", "confidence": "HIGH", "reason": "Both projects act on the same WP document set — one stores it, one upgrades its format and approval workflow." },
+    { "source": "RQ-003", "target": "BD-003", "type": "DATA_FLOW", "label": "Competitor Test Results", "confidence": "HIGH", "reason": "Product benchmark findings belong in the competitor intelligence database." },
+    { "source": "RQ-004", "target": "BD-002", "type": "DATA_FLOW", "label": "Grant & Funding News", "confidence": "MEDIUM", "reason": "BD-002 collects scraped news as strategic data; grant opportunities are the same class of feed." },
+    { "source": "BD-003", "target": "BD-002", "type": "DATA_FLOW", "label": "Competitor Data", "confidence": "MEDIUM", "reason": "Competitor records are an input to the strategic data picture." },
+    { "source": "BD-002", "target": "BD-001", "type": "DATA_FLOW", "label": "Strategic Data", "confidence": "MEDIUM", "reason": "Market size and news evidence inform the corporate blueprint." },
+    { "source": "BD-001", "target": "AF-007", "type": "REPORTING", "label": "Corporate Blueprint", "confidence": "LOW", "reason": "The blueprint frames what the executive dashboard should measure; relationship is directional guidance rather than data." },
+
+    { "source": "IS-001", "target": "B2C-001", "type": "DEPENDENCY", "label": "Access Control Rules", "confidence": "HIGH", "reason": "IS-001 defines data access rules for every Air4 web app; systems holding commission data cannot go live without them." },
+    { "source": "IS-001", "target": "PG-010", "type": "DEPENDENCY", "label": "Access Control Rules", "confidence": "HIGH", "reason": "The employee data hub holds personal data and depends on the access control standard from IS-001." },
+    { "source": "IS-001", "target": "AF-007", "type": "DEPENDENCY", "label": "Access Control Rules", "confidence": "HIGH", "reason": "Executive financial dashboards require the access levels defined by IS-001." },
+    { "source": "IS-003", "target": "IS-004", "type": "DATA_FLOW", "label": "AI Training Content", "confidence": "MEDIUM", "reason": "Awareness programme material is knowledge content for the Learning Hub." }
+  ]
+}

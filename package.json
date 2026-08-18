@@ -1,0 +1,38 @@
+{
+  "name": "air4-master-plan",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Air4 Master Plan — Integrated Business System (Addendum V2)",
+  "scripts": {
+    "dev": "next dev -p 3400",
+    "build": "next build",
+    "start": "next start -p 3400",
+    "seed": "node scripts/seed.mjs",
+    "reseed": "node scripts/seed.mjs --force",
+    "set-password": "node scripts/set-password.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:sync": "node scripts/test-sync.mjs",
+    "migrate": "node scripts/migrate.mjs",
+    "make-fixture": "node scripts/make-fixture.mjs"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.11.3",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "jose": "^6.2.9",
+    "next": "^16.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
+  }
+}

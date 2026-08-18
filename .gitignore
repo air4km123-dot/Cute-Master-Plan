@@ -1,0 +1,36 @@
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# ---------------------------------------------------------------------------
+# Secrets — never commit
+# ---------------------------------------------------------------------------
+.env
+.env.local
+.env.production
+.env.production.local
+.env*.local
+*.pem
+*.key
+credentials*.json
+service-account*.json
+gcp-*.json
+client_secret*.json
+
+# ---------------------------------------------------------------------------
+# Local database
+#
+# data/air4.db is the working copy: it holds Air4's own decisions — connection
+# reviews, progress, layout and the full audit history — and is rebuilt on a new
+# machine with `npm run seed` from data/source/. It is not source code and does
+# not belong in the repository.
+# ---------------------------------------------------------------------------
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/backups/
+data/test/
