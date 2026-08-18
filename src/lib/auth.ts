@@ -17,8 +17,11 @@ export const BCRYPT_COST = 12;
  */
 const DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEe.7Vv7ZfC/mQZ1zXKlYbHqZ1FSN1YFz9K";
 
-export function verifyCredentials(username: string, password: string): AppUser | null {
-  const user = get<AppUser & { password_hash: string }>(
+export async function verifyCredentials(
+  username: string,
+  password: string
+): Promise<AppUser | null> {
+  const user = await get<AppUser & { password_hash: string }>(
     `SELECT * FROM users WHERE username = ? COLLATE NOCASE`,
     [username.trim()]
   );
@@ -29,7 +32,7 @@ export function verifyCredentials(username: string, password: string): AppUser |
   }
   if (!bcrypt.compareSync(password, user.password_hash)) return null;
 
-  run(`UPDATE users SET last_login = ? WHERE user_id = ?`, [
+  await run(`UPDATE users SET last_login = ? WHERE user_id = ?`, [
     new Date().toISOString(),
     user.user_id,
   ]);

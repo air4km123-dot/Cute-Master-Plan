@@ -1,4 +1,4 @@
-import type Database from "better-sqlite3";
+import type { Client } from "@libsql/client";
 
 /**
  * Additive, idempotent schema migrations.
@@ -109,35 +109,48 @@ const TABLES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_sync_conflicts_open ON sync_conflicts (resolution, severity)`,
 ];
 
-function columnExists(db: Database.Database, table: string, column: string): boolean {
-  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
-  return rows.some((r) => r.name === column);
+/**
+ * `pragma_table_info` is used as a table-valued function rather than issuing a
+ * bare `PRAGMA table_info(...)`, because the function form accepts a bound
+ * parameter and returns an ordinary result set over the libSQL wire protocol.
+ */
+async function columnExists(db: Client, table: string, column: string): Promise<boolean> {
+  const result = await db.execute({
+    sql: `SELECT 1 FROM pragma_table_info(?) WHERE name = ?`,
+    args: [table, column],
+  });
+  return result.rows.length > 0;
 }
 
-function tableExists(db: Database.Database, table: string): boolean {
-  return !!db
-    .prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`)
-    .get(table);
+async function tableExists(db: Client, table: string): Promise<boolean> {
+  const result = await db.execute({
+    sql: `SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`,
+    args: [table],
+  });
+  return result.rows.length > 0;
 }
 
 /**
  * Bring an existing database up to date. Returns the statements applied, so a
  * first run can be reported instead of happening silently.
  */
-export function runMigrations(db: Database.Database): string[] {
+export async function runMigrations(db: Client): Promise<string[]> {
   const applied: string[] = [];
 
   for (const spec of COLUMNS) {
-    if (!tableExists(db, spec.table)) continue;
-    if (columnExists(db, spec.table, spec.column)) continue;
-    db.exec(`ALTER TABLE ${spec.table} ADD COLUMN ${spec.column} ${spec.definition}`);
+    if (!(await tableExists(db, spec.table))) continue;
+    if (await columnExists(db, spec.table, spec.column)) continue;
+    await db.execute(`ALTER TABLE ${spec.table} ADD COLUMN ${spec.column} ${spec.definition}`);
     applied.push(`ADD COLUMN ${spec.table}.${spec.column}`);
   }
 
+  const syncTablesPresent = async () =>
+    (await tableExists(db, "sync_runs")) && (await tableExists(db, "sync_conflicts"));
+
   for (const statement of TABLES) {
-    const before = tableExists(db, "sync_runs") && tableExists(db, "sync_conflicts");
-    db.exec(statement);
-    const after = tableExists(db, "sync_runs") && tableExists(db, "sync_conflicts");
+    const before = await syncTablesPresent();
+    await db.execute(statement);
+    const after = await syncTablesPresent();
     if (!before && after) applied.push("CREATE sync_runs / sync_conflicts");
   }
 
@@ -148,9 +161,7 @@ export function runMigrations(db: Database.Database): string[] {
    * introduces the column.
    */
   if (applied.some((a) => a.endsWith("projects.source_state"))) {
-    db.prepare(
-      `UPDATE projects SET source_state = 'MANUAL' WHERE source_seq IS NULL`
-    ).run();
+    await db.execute(`UPDATE projects SET source_state = 'MANUAL' WHERE source_seq IS NULL`);
     applied.push("SET source_state = MANUAL for projects with no source row");
   }
 

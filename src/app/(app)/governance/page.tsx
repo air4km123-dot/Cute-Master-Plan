@@ -10,11 +10,13 @@ export default async function GovernancePage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  return (
-    <GovernanceView
-      summary={governanceSummary()}
-      departments={getDepartments()}
-      statuses={getStatuses()}
-    />
-  );
+  // Three independent reads — issued together rather than in series, because
+  // each is now a round trip to Turso.
+  const [summary, departments, statuses] = await Promise.all([
+    governanceSummary(),
+    getDepartments(),
+    getStatuses(),
+  ]);
+
+  return <GovernanceView summary={summary} departments={departments} statuses={statuses} />;
 }

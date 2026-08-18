@@ -3,6 +3,7 @@ import { ForbiddenError } from "@/lib/auth";
 import { canEditConnection, canReviewConnection } from "@/lib/permissions";
 import { getConnection } from "@/lib/queries";
 import { recordAudit, recordFieldChanges } from "@/lib/audit";
+import type { InValue } from "@libsql/client";
 import { run } from "@/lib/db";
 import {
   ValidationError,
@@ -27,7 +28,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   const { id } = await ctx.params;
 
   return withSession(async (session) => {
-    const before = getConnection(id);
+    const before = await getConnection(id);
     if (!before || !before.active) {
       throw new ValidationError(`Connection "${id}" does not exist.`);
     }
@@ -49,7 +50,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
         throw new ValidationError("This connection was not proposed by the analyser.");
       }
 
-      run(
+      await run(
         `UPDATE connections
             SET connection_status = ?, reviewed_by = ?, review_date = ?, updated_at = ?, updated_by = ?
           WHERE connection_id = ?`,
@@ -63,7 +64,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
         ]
       );
 
-      recordAudit({
+      await recordAudit({
         actor: session,
         action:
           action === "approve"
@@ -79,7 +80,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
         notes: `${before.source_project_id} → ${before.target_project_id} (${before.connection_label})`,
       });
 
-      return { connection: getConnection(id), warnings: [] };
+      return { connection: await getConnection(id), warnings: [] };
     }
 
     // ---- content edits ----------------------------------------------------
@@ -87,10 +88,10 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     const target = (body.target_project_id as string) ?? before.target_project_id;
 
     if (source !== before.source_project_id || target !== before.target_project_id) {
-      assertConnectionEndpoints(source, target);
+      await assertConnectionEndpoints(source, target);
     }
 
-    if (!canEditConnection(session, source, target)) {
+    if (!(await canEditConnection(session, source, target))) {
       throw new ForbiddenError("You can only edit connections that touch a project you own.");
     }
 
@@ -99,7 +100,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     if ("target_project_id" in body) updates.target_project_id = target;
     if ("connection_label" in body) updates.connection_label = assertLabel(body.connection_label);
     if ("connection_type" in body) {
-      updates.connection_type = assertValidConnectionType(body.connection_type);
+      updates.connection_type = await assertValidConnectionType(body.connection_type);
     }
     if ("direction" in body) {
       updates.direction = body.direction === "BIDIRECTIONAL" ? "BIDIRECTIONAL" : "ONE_WAY";
@@ -120,12 +121,12 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     const setSql = Object.keys(updates)
       .map((k) => `${k} = ?`)
       .join(", ");
-    run(
+    await run(
       `UPDATE connections SET ${setSql}, updated_at = ?, updated_by = ? WHERE connection_id = ?`,
-      [...Object.values(updates), now, session.username, id]
+      [...(Object.values(updates) as InValue[]), now, session.username, id]
     );
 
-    recordFieldChanges(
+    await recordFieldChanges(
       session,
       "CONNECTION",
       id,
@@ -134,8 +135,8 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     );
 
     return {
-      connection: getConnection(id),
-      warnings: connectionWarnings(source, target, id),
+      connection: await getConnection(id),
+      warnings: await connectionWarnings(source, target, id),
     };
   });
 }
@@ -147,21 +148,21 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
 export async function DELETE(_request: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
 
-  return withSession((session) => {
-    const before = getConnection(id);
+  return withSession(async (session) => {
+    const before = await getConnection(id);
     if (!before || !before.active) {
       throw new ValidationError(`Connection "${id}" does not exist.`);
     }
-    if (!canEditConnection(session, before.source_project_id, before.target_project_id)) {
+    if (!(await canEditConnection(session, before.source_project_id, before.target_project_id))) {
       throw new ForbiddenError("You can only delete connections that touch a project you own.");
     }
 
-    run(
+    await run(
       `UPDATE connections SET active = 0, updated_at = ?, updated_by = ? WHERE connection_id = ?`,
       [new Date().toISOString(), session.username, id]
     );
 
-    recordAudit({
+    await recordAudit({
       actor: session,
       action: "DELETE_CONNECTION",
       entityType: "CONNECTION",

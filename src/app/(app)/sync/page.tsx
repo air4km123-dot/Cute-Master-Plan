@@ -16,5 +16,5 @@ export default async function SyncPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  return <SyncView initialStatus={syncStatus()} canSync={canSyncGoogleSheet(session)} />;
+  return <SyncView initialStatus={await syncStatus()} canSync={canSyncGoogleSheet(session)} />;
 }

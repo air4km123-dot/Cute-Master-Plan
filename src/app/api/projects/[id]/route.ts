@@ -3,6 +3,7 @@ import { ForbiddenError } from "@/lib/auth";
 import { canEditProject, isAdmin } from "@/lib/permissions";
 import { getProject } from "@/lib/queries";
 import { recordFieldChanges } from "@/lib/audit";
+import type { InValue } from "@libsql/client";
 import { run, get } from "@/lib/db";
 import {
   ValidationError,
@@ -55,12 +56,12 @@ const LABELS: Record<string, string> = {
   connection_review_status: "CONNECTION_REVIEW",
 };
 
-function coerce(field: string, value: unknown, session: SessionUser): unknown {
+async function coerce(field: string, value: unknown, session: SessionUser): Promise<unknown> {
   switch (field) {
     case "progress_percent":
       return assertValidProgress(value);
     case "status_id":
-      return assertValidStatus(value);
+      return await assertValidStatus(value);
     case "checkpoint_due_date":
       return assertValidDate(value, "Checkpoint date");
     case "final_due_date":
@@ -96,7 +97,7 @@ function coerce(field: string, value: unknown, session: SessionUser): unknown {
     case "owner_user_id": {
       if (value === null || value === "") return null;
       if (typeof value !== "string") throw new ValidationError("Owner is not valid.");
-      const exists = get(`SELECT 1 FROM users WHERE user_id = ? AND active = 1`, [value]);
+      const exists = await get(`SELECT 1 FROM users WHERE user_id = ? AND active = 1`, [value]);
       if (!exists) throw new ValidationError("That user account does not exist.");
       return value;
     }
@@ -112,9 +113,9 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   const { id } = await ctx.params;
 
   return withSession(async (session) => {
-    const before = getProject(id);
+    const before = await getProject(id);
     if (!before || !before.active) throw new ValidationError(`Project "${id}" does not exist.`);
-    if (!canEditProject(session, id)) {
+    if (!(await canEditProject(session, id))) {
       throw new ForbiddenError(
         `${id} is owned by another project owner. Ask an admin for access.`
       );
@@ -147,7 +148,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
 
     const updates: Record<string, unknown> = {};
     for (const field of allowed) {
-      if (field in body) updates[field] = coerce(field, body[field], session);
+      if (field in body) updates[field] = await coerce(field, body[field], session);
     }
     if (!Object.keys(updates).length) return { project: before, warnings: [] };
 
@@ -157,12 +158,17 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     const setSql = Object.keys(updates)
       .map((k) => `${k} = ?`)
       .join(", ");
-    run(
+    await run(
       `UPDATE projects SET ${setSql}, updated_at = ?, updated_by = ? WHERE project_id = ?`,
-      [...Object.values(updates), new Date().toISOString(), session.username, id]
+      [
+        ...(Object.values(updates) as InValue[]),
+        new Date().toISOString(),
+        session.username,
+        id,
+      ]
     );
 
-    recordFieldChanges(
+    await recordFieldChanges(
       session,
       "PROJECT",
       id,
@@ -171,14 +177,14 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
       LABELS
     );
 
-    return { project: getProject(id) as Project, warnings };
+    return { project: (await getProject(id)) as Project, warnings };
   });
 }
 
 export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  return withSession(() => {
-    const project = getProject(id);
+  return withSession(async () => {
+    const project = await getProject(id);
     if (!project) throw new ValidationError(`Project "${id}" does not exist.`);
     return { project };
   });

@@ -54,10 +54,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = verifyCredentials(username, password);
+  const user = await verifyCredentials(username, password);
 
   if (!user) {
-    recordAudit({
+    await recordAudit({
       actor: null,
       action: "LOGIN_FAILED",
       entityType: "SESSION",
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   const session = toSessionUser(user);
   const token = await createSessionToken(session);
 
-  recordAudit({
+  await recordAudit({
     actor: session,
     action: "LOGIN",
     entityType: "SESSION",

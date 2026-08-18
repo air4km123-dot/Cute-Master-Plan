@@ -21,13 +21,16 @@ export function assert(condition: unknown, message: string): asserts condition {
 
 export const PROJECT_ID_RE = /^[A-Z0-9]{2,4}-\d{3}$/;
 
-export function projectExists(projectId: string): boolean {
-  return !!get(`SELECT 1 FROM projects WHERE project_id = ? AND active = 1`, [projectId]);
+export async function projectExists(projectId: string): Promise<boolean> {
+  return !!(await get(`SELECT 1 FROM projects WHERE project_id = ? AND active = 1`, [projectId]));
 }
 
-export function assertProjectExists(projectId: string, label = "Project"): void {
+export async function assertProjectExists(
+  projectId: string,
+  label = "Project"
+): Promise<void> {
   assert(typeof projectId === "string" && projectId.length > 0, `${label} is required.`);
-  assert(projectExists(projectId), `${label} "${projectId}" does not exist.`);
+  assert(await projectExists(projectId), `${label} "${projectId}" does not exist.`);
 }
 
 export function assertValidProgress(value: unknown): number {
@@ -38,28 +41,28 @@ export function assertValidProgress(value: unknown): number {
   return n;
 }
 
-export function assertValidStatus(statusId: unknown): string {
+export async function assertValidStatus(statusId: unknown): Promise<string> {
   assert(typeof statusId === "string", "Status is required.");
   assert(
-    !!get(`SELECT 1 FROM status_config WHERE status_id = ? AND active = 1`, [statusId]),
+    !!(await get(`SELECT 1 FROM status_config WHERE status_id = ? AND active = 1`, [statusId])),
     `"${statusId}" is not one of the configured statuses.`
   );
   return statusId;
 }
 
-export function assertValidConnectionType(typeId: unknown): string {
+export async function assertValidConnectionType(typeId: unknown): Promise<string> {
   assert(typeof typeId === "string", "Connection type is required.");
   assert(
-    !!get(`SELECT 1 FROM connection_types WHERE type_id = ? AND active = 1`, [typeId]),
+    !!(await get(`SELECT 1 FROM connection_types WHERE type_id = ? AND active = 1`, [typeId])),
     `"${typeId}" is not one of the configured connection types.`
   );
   return typeId;
 }
 
-export function assertValidDepartment(deptCode: unknown): string {
+export async function assertValidDepartment(deptCode: unknown): Promise<string> {
   assert(typeof deptCode === "string", "Department is required.");
   assert(
-    !!get(`SELECT 1 FROM departments WHERE dept_code = ? AND active = 1`, [deptCode]),
+    !!(await get(`SELECT 1 FROM departments WHERE dept_code = ? AND active = 1`, [deptCode])),
     `"${deptCode}" is not one of the configured departments.`
   );
   return deptCode;
@@ -78,12 +81,15 @@ export function assertValidDate(value: unknown, label: string): string | null {
   return value;
 }
 
-export function assertConnectionEndpoints(sourceId: unknown, targetId: unknown): void {
+export async function assertConnectionEndpoints(
+  sourceId: unknown,
+  targetId: unknown
+): Promise<void> {
   assert(typeof sourceId === "string", "Source project is required.");
   assert(typeof targetId === "string", "Target project is required.");
   assert(sourceId !== targetId, "A project cannot connect to itself.");
-  assertProjectExists(sourceId, "Source project");
-  assertProjectExists(targetId, "Target project");
+  await assertProjectExists(sourceId, "Source project");
+  await assertProjectExists(targetId, "Target project");
 }
 
 export function assertLabel(value: unknown): string {
@@ -97,14 +103,14 @@ export function assertLabel(value: unknown): string {
 /**
  * Non-blocking warnings surfaced back to the user alongside a successful save.
  */
-export function connectionWarnings(
+export async function connectionWarnings(
   sourceId: string,
   targetId: string,
   excludeConnectionId?: string
-): string[] {
+): Promise<string[]> {
   const warnings: string[] = [];
 
-  const duplicate = get<{ connection_id: string; connection_label: string }>(
+  const duplicate = await get<{ connection_id: string; connection_label: string }>(
     `SELECT connection_id, connection_label FROM connections
       WHERE source_project_id = ? AND target_project_id = ? AND active = 1
         AND connection_id <> ?`,
@@ -116,7 +122,7 @@ export function connectionWarnings(
     );
   }
 
-  const reverse = get<{ connection_id: string }>(
+  const reverse = await get<{ connection_id: string }>(
     `SELECT connection_id FROM connections
       WHERE source_project_id = ? AND target_project_id = ? AND active = 1
         AND connection_id <> ?`,

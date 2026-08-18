@@ -1,7 +1,7 @@
 import { withSession, readJsonBody } from "@/lib/api";
 import { ForbiddenError } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
-import { db } from "@/lib/db";
+import { run, transaction } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
 import { ValidationError } from "@/lib/validation";
 
@@ -23,13 +23,6 @@ export async function POST(request: Request) {
       throw new ValidationError("Expected a list of positions.");
     }
 
-    const update = db.prepare(
-      `UPDATE projects SET layout_x = ?, layout_y = ? WHERE project_id = ?`
-    );
-    const apply = db.transaction((rows: { id: string; x: number; y: number }[]) => {
-      for (const row of rows) update.run(row.x, row.y, row.id);
-    });
-
     const clean = positions
       .filter(
         (p): p is { id: string; x: number; y: number } =>
@@ -40,9 +33,17 @@ export async function POST(request: Request) {
       )
       .map((p) => ({ id: p.id, x: p.x, y: p.y }));
 
-    apply(clean);
+    // One transaction: a half-saved layout would leave the diagram inconsistent.
+    await transaction(async (tx) => {
+      for (const row of clean) {
+        await tx.execute({
+          sql: `UPDATE projects SET layout_x = ?, layout_y = ? WHERE project_id = ?`,
+          args: [row.x, row.y, row.id],
+        });
+      }
+    });
 
-    recordAudit({
+    await recordAudit({
       actor: session,
       action: "REARRANGE_LAYOUT",
       entityType: "SYSTEM",
@@ -55,12 +56,12 @@ export async function POST(request: Request) {
 
 /** Clear saved positions so the diagram falls back to the computed layout. */
 export async function DELETE() {
-  return withSession((session) => {
+  return withSession(async (session) => {
     if (!isAdmin(session)) {
       throw new ForbiddenError("Only an admin can reset the Master Plan layout.");
     }
-    db.prepare(`UPDATE projects SET layout_x = NULL, layout_y = NULL`).run();
-    recordAudit({
+    await run(`UPDATE projects SET layout_x = NULL, layout_y = NULL`);
+    await recordAudit({
       actor: session,
       action: "RESET_LAYOUT",
       entityType: "SYSTEM",

@@ -6,7 +6,7 @@ import { recordAudit } from "@/lib/audit";
 export async function POST() {
   const session = await getSession();
   if (session) {
-    recordAudit({
+    await recordAudit({
       actor: session,
       action: "LOGOUT",
       entityType: "SESSION",

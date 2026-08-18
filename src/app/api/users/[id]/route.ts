@@ -1,6 +1,7 @@
 import { withSession, readJsonBody } from "@/lib/api";
 import { ForbiddenError, hashPassword, passwordProblem } from "@/lib/auth";
 import { canManageUsers } from "@/lib/permissions";
+import type { InValue } from "@libsql/client";
 import { get, run } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
 import { ValidationError, assertValidDepartment } from "@/lib/validation";
@@ -25,7 +26,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
       throw new ForbiddenError("Only an admin can change user accounts.");
     }
 
-    const before = get<AppUser>(`SELECT ${SAFE_COLUMNS} FROM users WHERE user_id = ?`, [id]);
+    const before = await get<AppUser>(`SELECT ${SAFE_COLUMNS} FROM users WHERE user_id = ?`, [id]);
     if (!before) throw new ValidationError("That user account does not exist.");
 
     const body = await readJsonBody(request);
@@ -44,7 +45,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
       const role = body.role as Role;
       if (!ROLES.includes(role)) throw new ValidationError("Choose Admin, Owner or Viewer.");
       if (before.role === "ADMIN" && role !== "ADMIN") {
-        const admins = get<{ n: number }>(
+        const admins = await get<{ n: number }>(
           `SELECT COUNT(*) n FROM users WHERE role = 'ADMIN' AND active = 1`
         );
         if ((admins?.n ?? 0) <= 1) {
@@ -62,7 +63,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
 
     if ("department_id" in body) {
       updates.department_id = body.department_id
-        ? assertValidDepartment(body.department_id)
+        ? await assertValidDepartment(body.department_id)
         : null;
     }
 
@@ -72,7 +73,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
         throw new ValidationError("You cannot deactivate your own account.");
       }
       if (!active && before.role === "ADMIN") {
-        const admins = get<{ n: number }>(
+        const admins = await get<{ n: number }>(
           `SELECT COUNT(*) n FROM users WHERE role = 'ADMIN' AND active = 1`
         );
         if ((admins?.n ?? 0) <= 1) {
@@ -87,12 +88,15 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     const setSql = Object.keys(updates)
       .map((k) => `${k} = ?`)
       .join(", ");
-    run(`UPDATE users SET ${setSql} WHERE user_id = ?`, [...Object.values(updates), id]);
+    await run(`UPDATE users SET ${setSql} WHERE user_id = ?`, [
+      ...(Object.values(updates) as InValue[]),
+      id,
+    ]);
 
     // Record what changed, never the credential itself.
     for (const [field, value] of Object.entries(updates)) {
       if (field === "password_hash" || field === "must_set_password") continue;
-      recordAudit({
+      await recordAudit({
         actor: session,
         action: "UPDATE_PERMISSIONS",
         entityType: "USER",
@@ -103,7 +107,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
       });
     }
     if (auditNotes.length) {
-      recordAudit({
+      await recordAudit({
         actor: session,
         action: "SET_PASSWORD",
         entityType: "USER",
@@ -112,6 +116,8 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
       });
     }
 
-    return { user: get<AppUser>(`SELECT ${SAFE_COLUMNS} FROM users WHERE user_id = ?`, [id]) };
+    return {
+      user: await get<AppUser>(`SELECT ${SAFE_COLUMNS} FROM users WHERE user_id = ?`, [id]),
+    };
   });
 }

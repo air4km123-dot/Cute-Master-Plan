@@ -42,40 +42,42 @@ export function isAdmin(user: SessionUser): boolean {
 }
 
 /** Project IDs this user may edit. Admins get every active project. */
-export function editableProjectIds(user: SessionUser): string[] {
+export async function editableProjectIds(user: SessionUser): Promise<string[]> {
   if (user.role === "ADMIN") {
-    return all<{ project_id: string }>(
-      `SELECT project_id FROM projects WHERE active = 1`
+    return (
+      await all<{ project_id: string }>(`SELECT project_id FROM projects WHERE active = 1`)
     ).map((r) => r.project_id);
   }
   if (user.role !== "OWNER") return [];
 
-  return all<{ project_id: string }>(
-    `SELECT p.project_id
-       FROM projects p
-      WHERE p.active = 1
-        AND (p.owner_user_id = ?
-             OR EXISTS (SELECT 1 FROM user_projects up
-                         WHERE up.user_id = ? AND up.project_id = p.project_id))`,
-    [user.userId, user.userId]
+  return (
+    await all<{ project_id: string }>(
+      `SELECT p.project_id
+         FROM projects p
+        WHERE p.active = 1
+          AND (p.owner_user_id = ?
+               OR EXISTS (SELECT 1 FROM user_projects up
+                           WHERE up.user_id = ? AND up.project_id = p.project_id))`,
+      [user.userId, user.userId]
+    )
   ).map((r) => r.project_id);
 }
 
-export function canEditProject(user: SessionUser, projectId: string): boolean {
+export async function canEditProject(user: SessionUser, projectId: string): Promise<boolean> {
   if (user.role === "ADMIN") return true;
   if (user.role !== "OWNER") return false;
-  return editableProjectIds(user).includes(projectId);
+  return (await editableProjectIds(user)).includes(projectId);
 }
 
 /** Creating or editing a connection requires edit rights on one of its ends. */
-export function canEditConnection(
+export async function canEditConnection(
   user: SessionUser,
   sourceProjectId: string,
   targetProjectId: string
-): boolean {
+): Promise<boolean> {
   if (user.role === "ADMIN") return true;
   if (user.role !== "OWNER") return false;
-  const editable = editableProjectIds(user);
+  const editable = await editableProjectIds(user);
   return editable.includes(sourceProjectId) || editable.includes(targetProjectId);
 }
 

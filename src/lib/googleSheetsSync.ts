@@ -1,7 +1,8 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { all, db, get } from "./db";
+import type { InValue, Transaction } from "@libsql/client";
+import { all, get, run, transaction, txGet } from "./db";
 import { recordAudit } from "./audit";
 import { fetchSheetGrid, sheetConfig, type SheetConfig, type SheetGrid } from "./googleSheets";
 import type { Project, SessionUser } from "./types";
@@ -596,12 +597,12 @@ export function compareChanges(
 // 5. generateSyncPlan
 // ---------------------------------------------------------------------------
 
-function knownOwnerSet(projects: Project[]): Set<string> {
+async function knownOwnerSet(projects: Project[]): Promise<Set<string>> {
   const owners = new Set<string>();
   for (const project of projects) {
     if (project.owner_name) owners.add(normaliseName(project.owner_name));
   }
-  for (const row of all<{ display_name: string }>(`SELECT display_name FROM users`)) {
+  for (const row of await all<{ display_name: string }>(`SELECT display_name FROM users`)) {
     if (row.display_name) owners.add(normaliseName(row.display_name));
   }
   return owners;
@@ -622,18 +623,18 @@ export async function generateSyncPlan(): Promise<SyncPlan> {
   const { rows: rawRows, config } = await fetchSheetProjects();
 
   const departments = new Set(
-    all<{ dept_code: string }>(`SELECT dept_code FROM departments WHERE active = 1`).map(
-      (d) => d.dept_code
-    )
+    (
+      await all<{ dept_code: string }>(`SELECT dept_code FROM departments WHERE active = 1`)
+    ).map((d) => d.dept_code)
   );
 
   // Only sheet-sourced projects take part. Future add-ons created in the app
   // have no source row and must never be reported as missing.
-  const projects = all<Project>(
+  const projects = await all<Project>(
     `SELECT * FROM projects WHERE active = 1 AND source_state <> 'MANUAL'
       ORDER BY dept_code, project_id`
   );
-  const owners = knownOwnerSet(projects);
+  const owners = await knownOwnerSet(projects);
 
   const normalised = rawRows.map((row) => normalizeSheetProject(row, departments, owners));
   const rowProblems = normalised.flatMap((r) => r.problems);
@@ -769,69 +770,76 @@ export async function generateSyncPlan(): Promise<SyncPlan> {
 // Run + conflict persistence
 // ---------------------------------------------------------------------------
 
-function recordRun(
+async function recordRun(
   plan: SyncPlan,
   mode: "CHECK" | "APPLY",
   actor: SessionUser | null,
   applied: { projects: number; fields: number },
   status: "SUCCESS" | "FAILED",
-  error: string | null
-): void {
-  db.prepare(
+  error: string | null,
+  tx?: Transaction
+): Promise<void> {
+  // An apply journals its run inside the same transaction as the data it wrote,
+  // so a rollback cannot leave a run row claiming changes that never landed.
+  const exec = (sql: string, args: Record<string, InValue>) =>
+    tx ? tx.execute({ sql, args }) : run(sql, args);
+
+  await exec(
     `INSERT INTO sync_runs (run_id, mode, started_at, finished_at, status,
                             actor_user_id, actor_username, spreadsheet_id, tab_name, source_mode,
                             rows_read, matched_count, changed_count, unchanged_count,
                             new_count, missing_count, warning_count, conflict_count,
                             applied_fields, applied_projects, error)
-     VALUES (@run_id, @mode, @started_at, @finished_at, @status,
-             @actor_user_id, @actor_username, @spreadsheet_id, @tab_name, @source_mode,
-             @rows_read, @matched_count, @changed_count, @unchanged_count,
-             @new_count, @missing_count, @warning_count, @conflict_count,
-             @applied_fields, @applied_projects, @error)`
-  ).run({
-    run_id: plan.runId,
-    mode,
-    started_at: plan.generatedAt,
-    finished_at: new Date().toISOString(),
-    status,
-    actor_user_id: actor?.userId ?? null,
-    actor_username: actor?.username ?? null,
-    spreadsheet_id: plan.spreadsheetId,
-    tab_name: plan.tab,
-    source_mode: plan.sourceMode,
-    rows_read: plan.summary.rowsRead,
-    matched_count: plan.summary.matched,
-    changed_count: plan.summary.changed,
-    unchanged_count: plan.summary.unchanged,
-    new_count: plan.summary.newRows,
-    missing_count: plan.summary.missing,
-    warning_count: plan.summary.warnings,
-    conflict_count: plan.summary.conflicts,
-    applied_fields: applied.fields,
-    applied_projects: applied.projects,
-    error,
-  });
-
-  const insertConflict = db.prepare(
-    `INSERT INTO sync_conflicts (run_id, detected_at, conflict_type, severity, project_id,
-                                 source_row, field_name, current_value, sheet_value, message)
-     VALUES (@run_id, @detected_at, @conflict_type, @severity, @project_id,
-             @source_row, @field_name, @current_value, @sheet_value, @message)`
+     VALUES (:run_id, :mode, :started_at, :finished_at, :status,
+             :actor_user_id, :actor_username, :spreadsheet_id, :tab_name, :source_mode,
+             :rows_read, :matched_count, :changed_count, :unchanged_count,
+             :new_count, :missing_count, :warning_count, :conflict_count,
+             :applied_fields, :applied_projects, :error)`,
+    {
+      run_id: plan.runId,
+      mode,
+      started_at: plan.generatedAt,
+      finished_at: new Date().toISOString(),
+      status,
+      actor_user_id: actor?.userId ?? null,
+      actor_username: actor?.username ?? null,
+      spreadsheet_id: plan.spreadsheetId,
+      tab_name: plan.tab,
+      source_mode: plan.sourceMode,
+      rows_read: plan.summary.rowsRead,
+      matched_count: plan.summary.matched,
+      changed_count: plan.summary.changed,
+      unchanged_count: plan.summary.unchanged,
+      new_count: plan.summary.newRows,
+      missing_count: plan.summary.missing,
+      warning_count: plan.summary.warnings,
+      conflict_count: plan.summary.conflicts,
+      applied_fields: applied.fields,
+      applied_projects: applied.projects,
+      error,
+    }
   );
+
   const now = new Date().toISOString();
   for (const conflict of plan.conflicts) {
-    insertConflict.run({
-      run_id: plan.runId,
-      detected_at: now,
-      conflict_type: conflict.type,
-      severity: conflict.severity,
-      project_id: conflict.projectId,
-      source_row: conflict.sourceRow,
-      field_name: conflict.field,
-      current_value: conflict.currentValue,
-      sheet_value: conflict.sheetValue,
-      message: conflict.message,
-    });
+    await exec(
+      `INSERT INTO sync_conflicts (run_id, detected_at, conflict_type, severity, project_id,
+                                   source_row, field_name, current_value, sheet_value, message)
+       VALUES (:run_id, :detected_at, :conflict_type, :severity, :project_id,
+               :source_row, :field_name, :current_value, :sheet_value, :message)`,
+      {
+        run_id: plan.runId,
+        detected_at: now,
+        conflict_type: conflict.type,
+        severity: conflict.severity,
+        project_id: conflict.projectId,
+        source_row: conflict.sourceRow,
+        field_name: conflict.field,
+        current_value: conflict.currentValue,
+        sheet_value: conflict.sheetValue,
+        message: conflict.message,
+      }
+    );
   }
 }
 
@@ -846,7 +854,7 @@ function recordRun(
  */
 export async function checkGoogleSheet(actor: SessionUser | null): Promise<SyncPlan> {
   const plan = await generateSyncPlan();
-  recordRun(plan, "CHECK", actor, { projects: 0, fields: 0 }, "SUCCESS", null);
+  await recordRun(plan, "CHECK", actor, { projects: 0, fields: 0 }, "SUCCESS", null);
   return plan;
 }
 
@@ -864,14 +872,14 @@ export async function applyGoogleSheetSync(actor: SessionUser): Promise<ApplyRes
   let appliedProjects = 0;
   let appliedFields = 0;
 
-  const transaction = db.transaction(() => {
+  await transaction(async (tx) => {
     for (const projectPlan of plan.projects) {
       if (projectPlan.state !== "CHANGED") continue;
       const safeChanges = projectPlan.changes.filter((c) => c.safe);
       if (!safeChanges.length) continue;
 
-      const assignments = safeChanges.map((c) => `${c.field} = @${c.field}`);
-      const params: Record<string, unknown> = { project_id: projectPlan.projectId };
+      const assignments = safeChanges.map((c) => `${c.field} = :${c.field}`);
+      const params: Record<string, InValue> = { project_id: projectPlan.projectId };
       for (const change of safeChanges) {
         params[change.field] =
           change.field === "priority" && change.after !== null
@@ -881,14 +889,14 @@ export async function applyGoogleSheetSync(actor: SessionUser): Promise<ApplyRes
 
       // Source-row bookkeeping travels with a real update; it never causes one.
       assignments.push(
-        "source_row_number = @source_row_number",
-        "source_sheet_id = @source_sheet_id",
-        "source_tab = @source_tab",
+        "source_row_number = :source_row_number",
+        "source_sheet_id = :source_sheet_id",
+        "source_tab = :source_tab",
         "source_state = 'PRESENT'",
-        "source_last_seen_at = @now",
-        "source_updated_at = @now",
-        "updated_at = @now",
-        "updated_by = @updated_by"
+        "source_last_seen_at = :now",
+        "source_updated_at = :now",
+        "updated_at = :now",
+        "updated_by = :updated_by"
       );
       params.source_row_number = projectPlan.sourceRow;
       params.source_sheet_id = plan.spreadsheetId;
@@ -896,23 +904,27 @@ export async function applyGoogleSheetSync(actor: SessionUser): Promise<ApplyRes
       params.now = new Date().toISOString();
       params.updated_by = actor.username;
 
-      db.prepare(
-        `UPDATE projects SET ${assignments.join(", ")} WHERE project_id = @project_id`
-      ).run(params);
+      await tx.execute({
+        sql: `UPDATE projects SET ${assignments.join(", ")} WHERE project_id = :project_id`,
+        args: params,
+      });
 
       // writeAuditLog — one append-only row per field actually changed (§7).
       for (const change of safeChanges) {
-        recordAudit({
-          actor,
-          action: "GOOGLE_SHEET_SYNC",
-          entityType: "PROJECT",
-          entityId: projectPlan.projectId,
-          fieldName: change.field,
-          oldValue: change.before,
-          newValue: change.after,
-          source: "GOOGLE_SHEET",
-          notes: `${plan.runId} · sheet row ${projectPlan.sourceRow} · ${change.label}`,
-        });
+        await recordAudit(
+          {
+            actor,
+            action: "GOOGLE_SHEET_SYNC",
+            entityType: "PROJECT",
+            entityId: projectPlan.projectId,
+            fieldName: change.field,
+            oldValue: change.before,
+            newValue: change.after,
+            source: "GOOGLE_SHEET",
+            notes: `${plan.runId} · sheet row ${projectPlan.sourceRow} · ${change.label}`,
+          },
+          tx
+        );
         appliedFields++;
       }
       appliedProjects++;
@@ -921,65 +933,69 @@ export async function applyGoogleSheetSync(actor: SessionUser): Promise<ApplyRes
     // Flag disappeared rows. Nothing is deleted, archived or deactivated (§10).
     for (const missing of plan.missing) {
       if (missing.alreadyFlagged) continue;
-      db.prepare(
-        `UPDATE projects SET source_state = 'SOURCE_MISSING', updated_at = ?, updated_by = ?
-          WHERE project_id = ?`
-      ).run(new Date().toISOString(), actor.username, missing.projectId);
-      recordAudit({
-        actor,
-        action: "GOOGLE_SHEET_SYNC",
-        entityType: "PROJECT",
-        entityId: missing.projectId,
-        fieldName: "source_state",
-        oldValue: "PRESENT",
-        newValue: "SOURCE_MISSING",
-        source: "GOOGLE_SHEET",
-        notes: `${plan.runId} · row no longer present in the sheet; project left intact for review`,
+      await tx.execute({
+        sql: `UPDATE projects SET source_state = 'SOURCE_MISSING', updated_at = :now,
+                                  updated_by = :by WHERE project_id = :id`,
+        args: { now: new Date().toISOString(), by: actor.username, id: missing.projectId },
       });
+      await recordAudit(
+        {
+          actor,
+          action: "GOOGLE_SHEET_SYNC",
+          entityType: "PROJECT",
+          entityId: missing.projectId,
+          fieldName: "source_state",
+          oldValue: "PRESENT",
+          newValue: "SOURCE_MISSING",
+          source: "GOOGLE_SHEET",
+          notes: `${plan.runId} · row no longer present in the sheet; project left intact for review`,
+        },
+        tx
+      );
       appliedFields++;
     }
 
     // A project whose row reappears comes back to PRESENT.
     for (const projectPlan of plan.projects) {
-      const current = get<{ source_state: string }>(
+      const current = await txGet<{ source_state: string }>(
+        tx,
         `SELECT source_state FROM projects WHERE project_id = ?`,
         [projectPlan.projectId]
       );
       if (current?.source_state !== "SOURCE_MISSING") continue;
-      db.prepare(
-        `UPDATE projects SET source_state = 'PRESENT', source_last_seen_at = ?,
-                             updated_at = ?, updated_by = ? WHERE project_id = ?`
-      ).run(
-        new Date().toISOString(),
-        new Date().toISOString(),
-        actor.username,
-        projectPlan.projectId
-      );
-      recordAudit({
-        actor,
-        action: "GOOGLE_SHEET_SYNC",
-        entityType: "PROJECT",
-        entityId: projectPlan.projectId,
-        fieldName: "source_state",
-        oldValue: "SOURCE_MISSING",
-        newValue: "PRESENT",
-        source: "GOOGLE_SHEET",
-        notes: `${plan.runId} · row found again in the sheet`,
+      const now = new Date().toISOString();
+      await tx.execute({
+        sql: `UPDATE projects SET source_state = 'PRESENT', source_last_seen_at = :now,
+                                  updated_at = :now, updated_by = :by WHERE project_id = :id`,
+        args: { now, by: actor.username, id: projectPlan.projectId },
       });
+      await recordAudit(
+        {
+          actor,
+          action: "GOOGLE_SHEET_SYNC",
+          entityType: "PROJECT",
+          entityId: projectPlan.projectId,
+          fieldName: "source_state",
+          oldValue: "SOURCE_MISSING",
+          newValue: "PRESENT",
+          source: "GOOGLE_SHEET",
+          notes: `${plan.runId} · row found again in the sheet`,
+        },
+        tx
+      );
       appliedFields++;
     }
 
-    recordRun(
+    await recordRun(
       plan,
       "APPLY",
       actor,
       { projects: appliedProjects, fields: appliedFields },
       "SUCCESS",
-      null
+      null,
+      tx
     );
   });
-
-  transaction();
 
   return {
     runId: plan.runId,
@@ -1032,27 +1048,40 @@ export interface SyncStatus {
   recent: SyncRunRecord[];
 }
 
-export function syncStatus(): SyncStatus {
+export async function syncStatus(): Promise<SyncStatus> {
   const config = sheetConfig();
+
   const lastOf = (mode: string) =>
     get<SyncRunRecord>(
       `SELECT * FROM sync_runs WHERE mode = ? AND status = 'SUCCESS'
         ORDER BY started_at DESC LIMIT 1`,
       [mode]
-    ) ?? null;
-
-  const latestRun = get<{ run_id: string }>(
-    `SELECT run_id FROM sync_runs ORDER BY started_at DESC LIMIT 1`
-  );
+    );
 
   // Conflicts are counted from the most recent run only, so a stale finding from
   // three checks ago is not still being reported as open.
-  const countConflicts = (severity: Severity) =>
-    get<{ n: number }>(
-      `SELECT COUNT(*) n FROM sync_conflicts
-        WHERE run_id = ? AND severity = ? AND resolution = 'OPEN'`,
-      [latestRun?.run_id ?? "", severity]
+  const countConflicts = async (severity: Severity) =>
+    (
+      await get<{ n: number }>(
+        `SELECT COUNT(*) n FROM sync_conflicts
+          WHERE severity = ? AND resolution = 'OPEN'
+            AND run_id = (SELECT run_id FROM sync_runs ORDER BY started_at DESC LIMIT 1)`,
+        [severity]
+      )
     )?.n ?? 0;
+
+  const [lastCheck, lastApply, openCritical, openWarnings, sourceMissing, recent] =
+    await Promise.all([
+      lastOf("CHECK"),
+      lastOf("APPLY"),
+      countConflicts("CRITICAL"),
+      countConflicts("WARNING"),
+      all<{ project_id: string; project_name: string }>(
+        `SELECT project_id, project_name FROM projects
+          WHERE active = 1 AND source_state = 'SOURCE_MISSING' ORDER BY project_id`
+      ),
+      all<SyncRunRecord>(`SELECT * FROM sync_runs ORDER BY started_at DESC LIMIT 10`),
+    ]);
 
   return {
     configured: config.mode !== null,
@@ -1061,14 +1090,11 @@ export function syncStatus(): SyncStatus {
     spreadsheetId: config.spreadsheetId,
     tab: config.tab,
     gid: config.gid,
-    lastCheck: lastOf("CHECK"),
-    lastApply: lastOf("APPLY"),
-    openCritical: countConflicts("CRITICAL"),
-    openWarnings: countConflicts("WARNING"),
-    sourceMissing: all<{ project_id: string; project_name: string }>(
-      `SELECT project_id, project_name FROM projects
-        WHERE active = 1 AND source_state = 'SOURCE_MISSING' ORDER BY project_id`
-    ),
-    recent: all<SyncRunRecord>(`SELECT * FROM sync_runs ORDER BY started_at DESC LIMIT 10`),
+    lastCheck: lastCheck ?? null,
+    lastApply: lastApply ?? null,
+    openCritical,
+    openWarnings,
+    sourceMissing,
+    recent,
   };
 }

@@ -9,5 +9,5 @@ export default async function MasterPlanPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  return <MasterPlan initialData={masterPlanData(session)} />;
+  return <MasterPlan initialData={await masterPlanData(session)} />;
 }

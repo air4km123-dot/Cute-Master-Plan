@@ -16,14 +16,14 @@ const SAFE_COLUMNS = `user_id, username, display_name, role, department_id,
                       must_set_password, active, created_at, last_login`;
 
 export async function GET() {
-  return withSession((session) => {
+  return withSession(async (session) => {
     if (!canManageUsers(session)) {
       throw new ForbiddenError("Only an admin can manage user accounts.");
     }
-    const users = all<AppUser>(
+    const users = await all<AppUser>(
       `SELECT ${SAFE_COLUMNS} FROM users ORDER BY role, username`
     );
-    const projectCounts = all<{ owner_user_id: string; n: number }>(
+    const projectCounts = await all<{ owner_user_id: string; n: number }>(
       `SELECT owner_user_id, COUNT(*) n FROM projects
         WHERE active = 1 AND owner_user_id IS NOT NULL GROUP BY owner_user_id`
     );
@@ -54,11 +54,13 @@ export async function POST(request: Request) {
     }
     if (!displayName) throw new ValidationError("Give the account a display name.");
     if (!ROLES.includes(role)) throw new ValidationError("Choose Admin, Owner or Viewer.");
-    if (get(`SELECT 1 FROM users WHERE username = ? COLLATE NOCASE`, [username])) {
+    if (await get(`SELECT 1 FROM users WHERE username = ? COLLATE NOCASE`, [username])) {
       throw new ValidationError(`The username "${username}" is already taken.`);
     }
 
-    const departmentId = body.department_id ? assertValidDepartment(body.department_id) : null;
+    const departmentId = body.department_id
+      ? await assertValidDepartment(body.department_id)
+      : null;
 
     // A password is optional at creation. Without one the account exists but
     // cannot sign in, which is the safe default for bulk onboarding.
@@ -72,17 +74,17 @@ export async function POST(request: Request) {
     }
 
     const seq =
-      (get<{ n: number }>(`SELECT COUNT(*) n FROM users`)?.n ?? 0) + 1;
+      ((await get<{ n: number }>(`SELECT COUNT(*) n FROM users`))?.n ?? 0) + 1;
     const userId = `USR-${String(seq).padStart(3, "0")}-${username.slice(0, 6).toUpperCase()}`;
 
-    run(
+    await run(
       `INSERT INTO users (user_id, username, password_hash, display_name, role,
                           department_id, must_set_password, active, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
       [userId, username, hash, displayName, role, departmentId, mustSet, new Date().toISOString()]
     );
 
-    recordAudit({
+    await recordAudit({
       actor: session,
       action: "CREATE_USER",
       entityType: "USER",
@@ -91,6 +93,8 @@ export async function POST(request: Request) {
       notes: mustSet ? "Created without a password" : "Created with a password",
     });
 
-    return { user: get<AppUser>(`SELECT ${SAFE_COLUMNS} FROM users WHERE user_id = ?`, [userId]) };
+    return {
+      user: await get<AppUser>(`SELECT ${SAFE_COLUMNS} FROM users WHERE user_id = ?`, [userId]),
+    };
   });
 }

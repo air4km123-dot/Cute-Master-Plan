@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
 
   if (!token || !secretMatches(token, expected)) {
-    recordAudit({
+    await recordAudit({
       actor: null,
       action: "SYNC_AUTH_FAILED",
       entityType: "SYSTEM",
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof SheetAccessError ? error.message : "Scheduled sync failed.";
     if (!(error instanceof SheetAccessError)) console.error("[air4] scheduled sync:", error);
-    recordAudit({
+    await recordAudit({
       actor: SCHEDULER,
       action: "GOOGLE_SHEET_SYNC_FAILED",
       entityType: "SYSTEM",

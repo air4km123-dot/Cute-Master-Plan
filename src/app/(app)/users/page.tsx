@@ -15,13 +15,13 @@ export default async function UsersPage() {
   if (!canManageUsers(session)) redirect("/");
 
   // password_hash is never selected.
-  const users = all<AppUser>(
+  const users = await all<AppUser>(
     `SELECT user_id, username, display_name, role, department_id,
             must_set_password, active, created_at, last_login
        FROM users
       ORDER BY CASE role WHEN 'ADMIN' THEN 0 WHEN 'OWNER' THEN 1 ELSE 2 END, username`
   );
-  const counts = all<{ owner_user_id: string; n: number }>(
+  const counts = await all<{ owner_user_id: string; n: number }>(
     `SELECT owner_user_id, COUNT(*) n FROM projects
       WHERE active = 1 AND owner_user_id IS NOT NULL GROUP BY owner_user_id`
   );
@@ -29,7 +29,7 @@ export default async function UsersPage() {
   return (
     <UsersView
       users={users}
-      departments={getDepartments()}
+      departments={await getDepartments()}
       ownedCounts={Object.fromEntries(counts.map((c) => [c.owner_user_id, c.n]))}
       currentUserId={session.userId}
     />

@@ -13,11 +13,11 @@ export default async function AuditPage() {
   if (!session) redirect("/login");
   if (!canViewAuditLog(session)) redirect("/");
 
-  const entries = all<AuditEntry>(
+  const entries = await all<AuditEntry>(
     `SELECT * FROM audit_log ORDER BY audit_id DESC LIMIT 500`
   );
   const total =
-    all<{ n: number }>(`SELECT COUNT(*) n FROM audit_log`)[0]?.n ?? entries.length;
+    (await all<{ n: number }>(`SELECT COUNT(*) n FROM audit_log`))[0]?.n ?? entries.length;
 
   return <AuditView entries={entries} total={total} />;
 }

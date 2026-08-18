@@ -27,7 +27,7 @@ export async function POST() {
       appliedFields: result.appliedFields,
       skippedBlocked: result.skippedBlocked,
       plan: result.plan,
-      status: syncStatus(),
+      status: await syncStatus(),
     };
   });
 }

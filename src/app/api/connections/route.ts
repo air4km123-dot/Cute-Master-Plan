@@ -3,6 +3,7 @@ import { ForbiddenError } from "@/lib/auth";
 import { canEditConnection, isAdmin } from "@/lib/permissions";
 import { getConnection, nextConnectionId } from "@/lib/queries";
 import { recordAudit } from "@/lib/audit";
+import type { InValue } from "@libsql/client";
 import { run } from "@/lib/db";
 import {
   ValidationError,
@@ -26,25 +27,25 @@ export async function POST(request: Request) {
 
     const source = body.source_project_id;
     const target = body.target_project_id;
-    assertConnectionEndpoints(source, target);
+    await assertConnectionEndpoints(source, target);
 
-    if (!canEditConnection(session, source as string, target as string)) {
+    if (!(await canEditConnection(session, source as string, target as string))) {
       throw new ForbiddenError(
         "You can only create connections that touch a project you own."
       );
     }
 
-    const type = assertValidConnectionType(body.connection_type);
+    const type = await assertValidConnectionType(body.connection_type);
     const label = assertLabel(body.connection_label);
     const direction = body.direction === "BIDIRECTIONAL" ? "BIDIRECTIONAL" : "ONE_WAY";
 
-    const warnings = connectionWarnings(source as string, target as string);
+    const warnings = await connectionWarnings(source as string, target as string);
 
-    const connectionId = nextConnectionId();
+    const connectionId = await nextConnectionId();
     const now = new Date().toISOString();
     const status = isAdmin(session) ? "APPROVED" : "NOT_REVIEWED";
 
-    run(
+    await run(
       `INSERT INTO connections (
          connection_id, source_project_id, target_project_id, direction, connection_type,
          connection_label, detailed_description, data_or_process_name, connection_status,
@@ -53,8 +54,8 @@ export async function POST(request: Request) {
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, 1, ?, ?, ?)`,
       [
         connectionId,
-        source,
-        target,
+        source as InValue,
+        target as InValue,
         direction,
         type,
         label,
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
       ]
     );
 
-    recordAudit({
+    await recordAudit({
       actor: session,
       action: "CREATE_CONNECTION",
       entityType: "CONNECTION",
@@ -79,10 +80,11 @@ export async function POST(request: Request) {
       notes: `Created manually as ${status}`,
     });
 
-    if (!getConnection(connectionId)) {
+    const connection = await getConnection(connectionId);
+    if (!connection) {
       throw new ValidationError("The connection could not be saved.");
     }
 
-    return { connection: getConnection(connectionId), warnings };
+    return { connection, warnings };
   });
 }

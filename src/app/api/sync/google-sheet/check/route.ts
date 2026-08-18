@@ -16,6 +16,6 @@ export async function POST() {
       throw new ForbiddenError("Only an admin can synchronise the Google Sheet.");
     }
     const plan = await checkGoogleSheet(session);
-    return { plan, status: syncStatus() };
+    return { plan, status: await syncStatus() };
   });
 }
