@@ -220,3 +220,114 @@ place for all of it; what is missing is the analysis that fills them.
 - Writing approved updates back to Google Sheets. The app currently reads the
   sheet at seed time only.
 - Multiple checkpoints per project. The table exists; the UI uses one.
+
+## Google Sheet sync
+
+The company project sheet is the source of truth for source data. The database
+is a working copy that keeps everything Air4 decides in the app. Sync moves the
+first into the second without ever rebuilding it — `npm run reseed` is a
+first-setup tool, never a sync mechanism, and it destroys local history.
+
+**Sheet:** `1zby_FYFWKHXDLP5Q6Z74XD3A7Onpxvs7zsuuV-5kc-0`, tab `สรุปโปรเจค` (gid `1327666860`).
+
+### What each side owns
+
+| The sheet owns | The app owns — never overwritten by a sync |
+| --- | --- |
+| Project name | Permanent Project ID |
+| Priority | Progress |
+| Owner (ผู้รับผิดชอบ) | Checkpoint and final due date |
+| Brief | Data owner, system owner |
+| Status text (`status_original`) | Project type / future add-on |
+| Notes | Connections and their review state |
+| Source department | Layout position |
+| | Audit log, data completeness, governance fields |
+
+### How a row finds its project
+
+Names are never identifiers. Matching runs in two passes — unique name first
+(survives reordering), then `source_seq` (survives a rename). A row that matches
+neither is genuinely new; a project that matches neither has genuinely lost its
+row. Neither is acted on automatically.
+
+### What it refuses to do
+
+- **Unmapped status** — keeps the original Thai text, leaves `status_id` alone, warns.
+- **Department change** — critical conflict. The Project ID encodes the department,
+  so nothing on that project is applied until a human decides.
+- **New row** — held as `NEW_SOURCE_PROJECT`. No project, no ID, no approval.
+- **Missing row** — flagged `SOURCE_MISSING`. Never deleted, never archived;
+  connections, progress and audit stay intact.
+- **Unknown owner** — stored as metadata and warned about. No account is created.
+- **Nothing changed** — no write, no audit row.
+
+### Using it
+
+- **Master Plan → `↻ Sync Sheet`** — fetch, compare, apply safe updates, refresh
+  the canvas. Admin only.
+- **`/sync`** — the full console: preview before applying, and the conflict list.
+  Not in the top nav; reach it by URL.
+- **Automatic** — 08:30 Asia/Bangkok daily, via
+  `.github/workflows/daily-sheet-sync.yml` calling
+  `POST /api/sync/google-sheet/auto`. GitHub cron is UTC-only, so the schedule is
+  `30 1 * * *` (08:30 − 7h). Thailand has no daylight saving, so it holds year round.
+
+### Google authentication
+
+Set in `.env.local` (see `.env.example`). Create a service account, enable the
+Google Sheets API, then **share the spreadsheet with the service-account address
+as a Viewer** — read-only is all the app requests.
+
+```
+GOOGLE_SERVICE_ACCOUNT_EMAIL=...
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+`AIR4_SHEET_FIXTURE=data/fixtures/sheet-current.tsv` reads a local snapshot
+instead of the network — for offline development and the test suite.
+
+### Testing
+
+```bash
+npm run test:sync
+```
+
+122 checks against a **copy** of `data/air4.db`, driven through the real HTTP API.
+The live database is never written to. Covers every scenario above plus the
+scheduled endpoint's bearer check.
+
+## Schema changes
+
+`src/lib/schema.sql` only describes a fresh seed. An existing `data/air4.db` is
+migrated by `src/lib/migrations.ts`, which runs automatically when the app opens
+the database and is additive and idempotent. Add any new column or table to
+**both**. To migrate deliberately, with a timestamped backup first:
+
+```bash
+npm run migrate
+```
+
+## Deployment
+
+`better-sqlite3` writes to a file, so the host must give the app **persistent
+disk**. A platform with an ephemeral filesystem loses every connection review,
+progress value and audit row on each redeploy. Railway, Render and Fly all offer
+a persistent volume; Vercel does not, and would require porting to Postgres
+first.
+
+Production environment variables:
+
+```
+AUTH_SECRET
+GOOGLE_SPREADSHEET_ID
+GOOGLE_SERVICE_ACCOUNT_EMAIL
+GOOGLE_PRIVATE_KEY
+SYNC_CRON_SECRET
+```
+
+And as GitHub repository secrets, for the scheduled sync:
+
+```
+PRODUCTION_URL
+SYNC_CRON_SECRET
+```
