@@ -30,7 +30,22 @@ function describe(value: string | undefined) {
     hasWhitespace: /\s/.test(value),
     hasQuotes: /^["']|["']$/.test(value),
     trimmedDiffers: value !== value.trim(),
+    // A value pasted from a masked dashboard field carries bullet characters
+    // where the real ones were. Every credential here is ASCII, so anything
+    // outside that range is a paste that did not bring the real value.
+    nonAscii: nonAsciiAt(value),
   };
+}
+
+/** First non-ASCII character: its index and code point, or null if clean. */
+function nonAsciiAt(value: string): { index: number; codePoint: number; char: string } | null {
+  for (let i = 0; i < value.length; i++) {
+    const codePoint = value.codePointAt(i)!;
+    if (codePoint > 126 || codePoint < 32) {
+      return { index: i, codePoint, char: String.fromCodePoint(codePoint) };
+    }
+  }
+  return null;
 }
 
 export async function GET(request: Request) {
