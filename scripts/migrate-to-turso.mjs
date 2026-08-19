@@ -132,18 +132,25 @@ if (verifyOnly) {
 // --------------------------------------------------------------------------
 
 const schemaPath = path.join(process.cwd(), "src", "lib", "schema.sql");
+
+/**
+ * Comments are stripped BEFORE splitting on ";", not after.
+ *
+ * Several comments in schema.sql contain a semicolon in ordinary prose ("the
+ * sheet owns the source fields; these ..."). Splitting first cuts the CREATE
+ * TABLE that comment sits inside straight down the middle, and the server
+ * rejects the fragment with "unexpected end of input".
+ *
+ * The schema contains no string literal holding "--", so removing to end of line
+ * is safe here.
+ */
 const schema = fs
   .readFileSync(schemaPath, "utf8")
+  .split(/\r?\n/)
+  .map((line) => line.replace(/--.*$/, ""))
+  .join("\n")
   .split(";")
-  .map((chunk) =>
-    chunk
-      // Drop comment lines so a chunk that is only commentary is left empty
-      // rather than sent to the server as a statement.
-      .split("\n")
-      .filter((line) => !line.trim().startsWith("--"))
-      .join("\n")
-      .trim()
-  )
+  .map((chunk) => chunk.trim())
   // PRAGMA is meaningless against a hosted database — Turso manages its own
   // journalling and enforces foreign keys itself.
   .filter((chunk) => chunk.length > 0 && !/^PRAGMA/i.test(chunk));
