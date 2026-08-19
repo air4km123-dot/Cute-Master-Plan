@@ -15,7 +15,14 @@ import { SESSION_COOKIE, readSessionToken } from "@/lib/session";
  * at all if that secret is unset. Without this exemption the middleware would
  * 401 the scheduler before its own check ever ran.
  */
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/sync/google-sheet/auto"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/auth/login",
+  "/api/sync/google-sheet/auto",
+  // Deployment diagnostics. Bearer-guarded by the same secret, and it has to be
+  // reachable without a session precisely when sign-in is the thing that is broken.
+  "/api/health",
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
