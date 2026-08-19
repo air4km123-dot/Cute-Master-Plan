@@ -274,6 +274,23 @@ row. Neither is acted on automatically.
 
 ### Google authentication
 
+Two options. The Apps Script route is simpler and is what production uses.
+
+**Apps Script web app (recommended).** A script bound to the spreadsheet returns
+the tab as JSON and runs as the sheet owner, so there is no Google Cloud project,
+no service account and no private key to store. Follow the setup comment in
+`docs/apps-script/Code.gs`, then set:
+
+```
+AIR4_SHEET_WEBAPP_URL=https://script.google.com/macros/s/.../exec
+AIR4_SHEET_WEBAPP_TOKEN=<your own random string, matching the script>
+```
+
+The web app is deployed with access set to "Anyone", so the token is what keeps
+it private — it refuses any request without a match.
+
+**Service account (alternative).**
+
 Set in `.env.local` (see `.env.example`). Create a service account, enable the
 Google Sheets API, then **share the spreadsheet with the service-account address
 as a Viewer** — read-only is all the app requests.

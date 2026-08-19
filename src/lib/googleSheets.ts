@@ -9,6 +9,12 @@ import { SignJWT, importPKCS8 } from "jose";
  * Credentials come from the environment only — nothing is hardcoded and nothing
  * is committed. Three sources are supported, tried in this order:
  *
+ *   GAS_WEBAPP       AIR4_SHEET_WEBAPP_URL + AIR4_SHEET_WEBAPP_TOKEN.
+ *                    An Apps Script Web App bound to the spreadsheet returns the
+ *                    tab as JSON. It executes as the sheet's owner, so there is
+ *                    no Google Cloud project, no service account and no private
+ *                    key anywhere — the script already has the access, and Air4
+ *                    only needs a shared token to call it.
  *   SERVICE_ACCOUNT  GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_PRIVATE_KEY.
  *                    The normal production path: share the sheet with the
  *                    service account address as a Viewer.
@@ -34,7 +40,7 @@ const RANGE_COLUMNS = "A1:H2000";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 
-export type SheetSourceMode = "SERVICE_ACCOUNT" | "API_KEY" | "FIXTURE";
+export type SheetSourceMode = "SERVICE_ACCOUNT" | "API_KEY" | "FIXTURE" | "GAS_WEBAPP";
 
 export interface SheetConfig {
   spreadsheetId: string;
@@ -63,6 +69,11 @@ export function sheetConfig(): SheetConfig {
   if (process.env.AIR4_SHEET_FIXTURE?.trim()) {
     mode = "FIXTURE";
   } else if (
+    process.env.AIR4_SHEET_WEBAPP_URL?.trim() &&
+    process.env.AIR4_SHEET_WEBAPP_TOKEN?.trim()
+  ) {
+    mode = "GAS_WEBAPP";
+  } else if (
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim() &&
     process.env.GOOGLE_PRIVATE_KEY?.trim()
   ) {
@@ -71,9 +82,9 @@ export function sheetConfig(): SheetConfig {
     mode = "API_KEY";
   } else {
     problem =
-      "No Google Sheets credentials configured. Set GOOGLE_SERVICE_ACCOUNT_EMAIL + " +
-      "GOOGLE_PRIVATE_KEY in .env.local (see .env.example), or GOOGLE_SHEETS_API_KEY " +
-      "for a link-shared sheet.";
+      "No Google Sheets source configured. Either deploy the Apps Script web app " +
+      "and set AIR4_SHEET_WEBAPP_URL + AIR4_SHEET_WEBAPP_TOKEN, or use a service " +
+      "account with GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_PRIVATE_KEY. See .env.example.";
   }
 
   return { spreadsheetId, tab, gid, mode, problem };
@@ -185,6 +196,62 @@ function readFixture(): string[][] {
 }
 
 // ---------------------------------------------------------------------------
+// Apps Script web app
+// ---------------------------------------------------------------------------
+
+/**
+ * Read the tab through an Apps Script web app bound to the spreadsheet.
+ *
+ * The script runs as the sheet's owner and returns the same rectangular grid the
+ * Sheets API would, so nothing downstream can tell the difference. Air4
+ * authenticates with a shared token rather than a Google credential.
+ *
+ * Apps Script answers an unauthorised request with a 302 to a Google sign-in
+ * page rather than a 401, so a redirect is treated as a configuration failure
+ * and reported as one instead of being followed into an HTML login form.
+ */
+async function fetchFromWebApp(config: SheetConfig): Promise<string[][]> {
+  const base = process.env.AIR4_SHEET_WEBAPP_URL!.trim();
+  const token = process.env.AIR4_SHEET_WEBAPP_TOKEN!.trim();
+
+  const url = new URL(base);
+  url.searchParams.set("token", token);
+  url.searchParams.set("tab", config.tab);
+
+  const response = await fetch(url, { redirect: "follow", cache: "no-store" });
+
+  if (!response.ok) {
+    throw new SheetAccessError(
+      `The Apps Script web app returned HTTP ${response.status}. Check that it is ` +
+        'deployed with "Execute as: Me" and "Who has access: Anyone".'
+    );
+  }
+
+  const text = await response.text();
+  let payload: { ok?: boolean; error?: string; values?: unknown };
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    throw new SheetAccessError(
+      "The Apps Script web app did not return JSON. That usually means the request " +
+        "was redirected to a Google sign-in page — redeploy it with access set to " +
+        '"Anyone", and make sure AIR4_SHEET_WEBAPP_URL is the /exec URL.'
+    );
+  }
+
+  if (payload.ok === false || payload.error) {
+    throw new SheetAccessError(`Apps Script refused the request: ${payload.error}`);
+  }
+  if (!Array.isArray(payload.values)) {
+    throw new SheetAccessError("Apps Script returned no `values` array.");
+  }
+
+  return (payload.values as unknown[][]).map((row) =>
+    (row ?? []).map((cell) => (cell === null || cell === undefined ? "" : String(cell)))
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Fetch
 // ---------------------------------------------------------------------------
 
@@ -198,6 +265,10 @@ export async function fetchSheetGrid(): Promise<SheetGrid> {
 
   if (config.mode === "FIXTURE") {
     return { rows: readFixture(), firstRowNumber: 1, config };
+  }
+
+  if (config.mode === "GAS_WEBAPP") {
+    return { rows: await fetchFromWebApp(config), firstRowNumber: 1, config };
   }
 
   // A tab name containing spaces or Thai text must be single-quoted inside the
