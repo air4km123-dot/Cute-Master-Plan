@@ -27,6 +27,22 @@
   --color-ink-faint: #8695a1;
   --color-stamp: #b23a48;
 
+  /* ------------------------------------------------------------ connectors
+     Connection-type hues live in the database (connection_types.color) so the
+     palette stays configuration. These are the pieces that are not per-type:
+     the halo drawn under every line, and the shadows that lift boxes off the
+     blueprint grid.
+
+     Shadows are deliberately short-throw and low-opacity. A long, soft shadow
+     would turn a drafting sheet into a card-based dashboard; the intent here is
+     only enough separation that a 1px line and a small label stop merging into
+     the grid behind them. */
+  --color-connector-halo: rgba(255, 255, 255, 0.92);
+  --shadow-connector-label: 0 1px 2px rgba(22, 32, 42, 0.16), 0 0 0 0.5px rgba(255, 255, 255, 0.7);
+  --shadow-card: 0 1px 2px rgba(22, 32, 42, 0.1), 0 2px 5px rgba(22, 32, 42, 0.07);
+  --shadow-card-hover: 3px 3px 0 var(--color-rule-strong), 0 3px 7px rgba(22, 32, 42, 0.12);
+  --shadow-zone: 0 1px 2px rgba(22, 32, 42, 0.06), 0 3px 9px rgba(22, 32, 42, 0.05);
+
   --font-draft: "Arial Narrow", "Archivo Narrow", "Roboto Condensed", "Segoe UI", sans-serif;
   --font-ui: "Leelawadee UI", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-data: Consolas, "Cascadia Mono", ui-monospace, "SF Mono", monospace;
@@ -270,10 +286,11 @@ textarea.field {
   border: 1.5px solid var(--color-ink);
   padding: 0;
   cursor: pointer;
+  box-shadow: var(--shadow-card);
   transition: box-shadow 120ms ease, transform 120ms ease;
 }
 .card:hover {
-  box-shadow: 3px 3px 0 var(--color-rule-strong);
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* Project_Type — border style only, never colour, never status (§5, §32). */
@@ -284,7 +301,8 @@ textarea.field {
 }
 
 .card--selected {
-  box-shadow: 0 0 0 2px var(--color-ink), 4px 4px 0 var(--color-rule-strong);
+  box-shadow: 0 0 0 2px var(--color-ink), 4px 4px 0 var(--color-rule-strong),
+    0 4px 10px rgba(22, 32, 42, 0.14);
 }
 
 .card--faded {
@@ -400,6 +418,7 @@ textarea.field {
 .zone {
   border: 1px solid var(--color-rule-strong);
   background: rgba(255, 255, 255, 0.45);
+  box-shadow: var(--shadow-zone);
 }
 .presenting .zone {
   background: rgba(255, 255, 255, 0.72);
@@ -454,4 +473,25 @@ textarea.field {
 }
 .presenting .hide-when-presenting {
   display: none !important;
+}
+
+/* ------------------------------------------------- connector label (on edge)
+
+   A floating tag sitting on its line. Fill, border and text are all mixed from
+   that connection type's hue in FlowEdge.tsx, so the pair reads as one object;
+   only the geometry and the shadow are fixed here.
+
+   The white ring in the shadow does the real work — it holds the label apart
+   from whatever the line happens to cross. */
+.edge-label {
+  padding: 1px 5px;
+  border: 1px solid;
+  border-radius: 3px;
+  box-shadow: var(--shadow-connector-label);
+  white-space: nowrap;
+}
+
+/* Presentation mode is aimed at a projector, where thin colour washes out. */
+.presenting .edge-label {
+  box-shadow: 0 1px 3px rgba(22, 32, 42, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.85);
 }

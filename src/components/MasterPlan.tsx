@@ -67,6 +67,12 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
     () => new Map(data.projects.map((p) => [p.project_id, p])),
     [data.projects]
   );
+  /** connection_type → colour, so a line and its label share one hue. */
+  const connectionColours = useMemo(
+    () => new Map(data.connectionTypes.map((t) => [t.type_id, t.color])),
+    [data.connectionTypes]
+  );
+
   const departmentsByCode = useMemo(
     () => new Map(data.departments.map((d) => [d.dept_code, d])),
     [data.departments]
@@ -237,10 +243,11 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
             bidirectional: connection.direction === "BIDIRECTIONAL",
             dimmed: !withinFocus,
             emphasised: touchesSelection || selectedConnection === connection.connection_id,
+            accent: connectionColours.get(connection.connection_type) ?? "",
           },
         };
       }),
-    [visibleConnections, selectedProject, selectedConnection, focusSet]
+    [visibleConnections, selectedProject, selectedConnection, focusSet, connectionColours]
   );
 
   /*
@@ -415,7 +422,7 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
         </div>
 
         <div className="flex-1 min-h-0 relative">
-          <ArrowMarkers />
+          <ArrowMarkers colors={[...connectionColours.values()]} />
           <ReactFlow
             nodes={flowNodes}
             edges={edges}

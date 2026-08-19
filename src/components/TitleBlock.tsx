@@ -198,9 +198,12 @@ export default function TitleBlock({
 
       <Key title="Line style = review status">
         <div className="space-y-1.5">
-          <LineSample dash={undefined} width={1.5} label="Approved — confirmed architecture" />
-          <LineSample dash="6 4" width={1.25} label="AI suggested — waiting for a human decision" />
-          <LineSample dash="2 4" width={1.25} label="Not reviewed" />
+          {/* Dash patterns and widths mirror FlowEdge.tsx exactly. The legend
+              draws real marks rather than describing them, so the two must be
+              changed together or the key silently starts lying. */}
+          <LineSample dash={undefined} width={1.9} label="Approved — confirmed architecture" />
+          <LineSample dash="7 4" width={1.6} label="AI suggested — waiting for a human decision" />
+          <LineSample dash="2 5" width={1.6} label="Not reviewed" />
         </div>
         <p className="note mt-2">
           Rejected connections are kept in the record but leave the sheet.
