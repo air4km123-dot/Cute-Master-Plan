@@ -6,7 +6,9 @@ import {
   useInternalNode,
   type EdgeProps,
 } from "@xyflow/react";
+import { useMemo } from "react";
 import { edgeGeometry } from "./edgeGeometry";
+import { placeLabel, type Rect } from "./labelPlacement";
 
 /**
  * A drafted connection line.
@@ -31,11 +33,12 @@ import { edgeGeometry } from "./edgeGeometry";
  * this is the one place the sheet carries a third colour system, and anything
  * added later should not make it a fourth.
  *
- * Every line is drawn twice: a pale halo underneath and the coloured stroke on
- * top. The halo is what lifts a 1px line off the blueprint grid — without it,
- * thin dashed lines read as part of the background at anything below 100% zoom.
- * It is a plain wider stroke rather than an SVG filter because a real
- * drop-shadow on 50+ paths costs a repaint on every pan.
+ * Connections are a secondary layer. The card and its text are what the sheet is
+ * for, so an edge is drawn thin and slightly held back, and it never covers a
+ * card: edges carry a lower z-index than nodes, which means a line passing
+ * behind a card is simply hidden by it. Separation from the grid comes from
+ * contrast and an opaque label, not from a heavy white casing under the stroke —
+ * with 50-odd connections on one sheet that reads as a second set of lines.
  */
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -46,6 +49,8 @@ export interface FlowEdgeData extends Record<string, unknown> {
   emphasised: boolean;
   /** connection_types.color for this connection's type. */
   accent: string;
+  /** Card rectangles the label must not land on. One shared array for all edges. */
+  obstacles: Rect[];
 }
 
 const DASH: Record<FlowEdgeData["reviewState"], string | undefined> = {
@@ -70,7 +75,7 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
   const edge = (data ?? {}) as unknown as FlowEdgeData;
   const { sx, sy, tx, ty, sourcePos, targetPos } = edgeGeometry(sourceNode, targetNode);
 
-  const [path, labelX, labelY] = getSmoothStepPath({
+  const [path, midX, midY] = getSmoothStepPath({
     sourceX: sx,
     sourceY: sy,
     targetX: tx,
@@ -80,28 +85,26 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
     borderRadius: 0, // crisp drafting corners
   });
 
+  // React Flow's midpoint sits on a card for most routes on this sheet, so the
+  // label is placed along the route instead. Memoised on the path, since this
+  // re-runs on every pan and there are 50-odd edges.
+  const placement = useMemo(
+    () => placeLabel(path, edge.label ?? "", edge.obstacles ?? [], { x: midX, y: midY }),
+    [path, edge.label, edge.obstacles, midX, midY]
+  );
+  const { x: labelX, y: labelY } = placement;
+
   const emphasised = edge.emphasised || selected;
   const accent = edge.accent || FALLBACK_ACCENT;
 
-  const width = emphasised ? 2.6 : edge.reviewState === "CONFIRMED" ? 1.9 : 1.6;
+  const width = emphasised ? 1.9 : edge.reviewState === "CONFIRMED" ? 1.5 : 1.35;
   const marker = `url(#${arrowId(accent, emphasised)})`;
-  const opacity = edge.dimmed ? 0.07 : 1;
+  // Held back from full strength so the cards stay the loudest thing on the
+  // sheet; a selected connection comes up to full.
+  const opacity = edge.dimmed ? 0.07 : emphasised ? 1 : 0.7;
 
   return (
     <>
-      {/* Halo — separates the line from the grid without an SVG filter. */}
-      {!edge.dimmed && (
-        <path
-          d={path}
-          fill="none"
-          stroke="var(--color-connector-halo)"
-          strokeWidth={width + 3.5}
-          strokeLinecap="round"
-          opacity={emphasised ? 0.95 : 0.8}
-          pointerEvents="none"
-        />
-      )}
-
       <path
         id={id}
         d={path}
@@ -124,19 +127,29 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
         className="react-flow__edge-interaction"
       />
 
-      {!edge.dimmed && edge.label && (
+      {/*
+        A label is drawn at rest only where it has clear ground. On a sheet this
+        tight most routes have none, and drawing them anyway is what buried the
+        project names. Selecting a connection or a project brings its label back
+        regardless — at that moment covering a card is exactly what was asked
+        for, and only that one label is loud.
+      */}
+      {!edge.dimmed && edge.label && (placement.clear || emphasised) && (
         <EdgeLabelRenderer>
           <div
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: "none",
-              // Tinted from the line's own hue so the pair reads as one thing:
-              // a pale fill, a stronger border, and text dark enough to hold
-              // contrast at small sizes.
-              background: `color-mix(in srgb, ${accent} 13%, #ffffff)`,
-              borderColor: `color-mix(in srgb, ${accent} ${emphasised ? "85%" : "60%"}, #ffffff)`,
-              color: `color-mix(in srgb, ${accent} 78%, #16202a)`,
+              // Opaque, and that is the point: the label interrupts its own
+              // line rather than sitting on top of it, so the text is never read
+              // through a stroke. Border and text carry the connection's hue;
+              // the fill stays near-white so a dense corner does not turn into
+              // a wall of colour.
+              background: `color-mix(in srgb, ${accent} 5%, #ffffff)`,
+              borderColor: `color-mix(in srgb, ${accent} ${emphasised ? "80%" : "55%"}, #ffffff)`,
+              color: `color-mix(in srgb, ${accent} 72%, #16202a)`,
+              opacity: emphasised ? 1 : 0.94,
             }}
             className="edge-label"
           >

@@ -195,7 +195,8 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
           editable: editableIds.has(project.project_id),
         },
         draggable: isAdmin && editing,
-        zIndex: selectedProject === project.project_id ? 10 : 1,
+        // Cards sit above every edge. See the layering note in globals.css.
+        zIndex: selectedProject === project.project_id ? 20 : 5,
       };
     });
 
@@ -211,6 +212,22 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
     isAdmin,
     editing,
   ]);
+
+  /**
+   * Card rectangles for label placement. One array shared by every edge, so the
+   * edges' useMemo is not invalidated per-edge, and rebuilt only when the cards
+   * themselves move.
+   */
+  const cardObstacles = useMemo(
+    () =>
+      visibleProjects.map((project) => {
+        const box = layout.cards.get(project.project_id) ?? { x: 0, y: 0 };
+        const live = positions.current.get(project.project_id);
+        const at = live ?? box;
+        return { x: at.x, y: at.y, w: CARD_W, h: CARD_H };
+      }),
+    [visibleProjects, layout]
+  );
 
   const edges = useMemo<Edge[]>(
     () =>
@@ -230,7 +247,10 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
           target: connection.target_project_id,
           type: "flow",
           selected: selectedConnection === connection.connection_id,
-          zIndex: touchesSelection ? 5 : 2,
+          // Below the cards (5) and above the department zones (0). A selected
+          // edge lifts clear of its neighbours but still never covers a card:
+          // if a line has to pass where a card is, the card wins and hides it.
+          zIndex: touchesSelection ? 2 : 1,
           data: {
             label: connection.connection_label,
             reviewState:
@@ -244,10 +264,18 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
             dimmed: !withinFocus,
             emphasised: touchesSelection || selectedConnection === connection.connection_id,
             accent: connectionColours.get(connection.connection_type) ?? "",
+            obstacles: cardObstacles,
           },
         };
       }),
-    [visibleConnections, selectedProject, selectedConnection, focusSet, connectionColours]
+    [
+      visibleConnections,
+      selectedProject,
+      selectedConnection,
+      focusSet,
+      connectionColours,
+      cardObstacles,
+    ]
   );
 
   /*

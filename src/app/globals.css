@@ -35,9 +35,8 @@
 
      Shadows are deliberately short-throw and low-opacity. A long, soft shadow
      would turn a drafting sheet into a card-based dashboard; the intent here is
-     only enough separation that a 1px line and a small label stop merging into
-     the grid behind them. */
-  --color-connector-halo: rgba(255, 255, 255, 0.92);
+     only enough separation that a card and a small label stop merging into the
+     grid behind them. */
   --shadow-connector-label: 0 1px 2px rgba(22, 32, 42, 0.16), 0 0 0 0.5px rgba(255, 255, 255, 0.7);
   --shadow-card: 0 1px 2px rgba(22, 32, 42, 0.1), 0 2px 5px rgba(22, 32, 42, 0.07);
   --shadow-card-hover: 3px 3px 0 var(--color-rule-strong), 0 3px 7px rgba(22, 32, 42, 0.12);
@@ -494,4 +493,29 @@ textarea.field {
 /* Presentation mode is aimed at a projector, where thin colour washes out. */
 .presenting .edge-label {
   box-shadow: 0 1px 3px rgba(22, 32, 42, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.85);
+}
+
+/* ------------------------------------------------------------------ layering
+
+   The order the sheet has to read in, back to front:
+
+     0   department zone
+     1   connection line        (2 when it touches the selection)
+     5   project card           (20 when selected)
+         card content
+    30   connection label
+
+   Cards outrank every connection, and that is the whole mechanism behind "no
+   line crosses the text". A line routed past a card is simply painted over by
+   it — the card's background is opaque — so nothing has to be re-routed to
+   avoid an obstacle. The node z-indexes are set in MasterPlan.tsx; this rule
+   handles the label layer.
+
+   Labels are the exception to the ordering, and deliberately so: they sit above
+   the cards. They can afford to, because FlowEdge only draws one at rest when it
+   found ground clear of every card — so a resting label has nothing to cover.
+   The crowded ones appear only while their connection is selected, and covering
+   a card is the point at that moment. */
+.react-flow .react-flow__edgelabel-renderer {
+  z-index: 30;
 }
