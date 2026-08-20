@@ -361,6 +361,15 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
     ? data.connections.find((c) => c.connection_id === selectedConnection)
     : undefined;
 
+  /**
+   * Connection types present anywhere in the record — not in the filtered view,
+   * so narrowing the sheet does not quietly rewrite the legend.
+   */
+  const typesInUse = useMemo(
+    () => [...new Set(data.connections.map((c) => c.connection_type))],
+    [data.connections]
+  );
+
   const pendingSuggestions = data.connections.filter(
     (c) => c.connection_status === "AI_SUGGESTED"
   ).length;
@@ -485,6 +494,8 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
           <TitleBlock
             departments={data.departments}
             statuses={data.statuses}
+            connectionTypes={data.connectionTypes}
+            typesInUse={typesInUse}
             drawnBy={session.displayName}
             projectCount={data.projects.length}
             approvedConnections={approvedConnections}

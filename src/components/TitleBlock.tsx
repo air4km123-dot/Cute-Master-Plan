@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Department, StatusConfig } from "@/lib/types";
+import type { ConnectionType, Department, StatusConfig } from "@/lib/types";
 
 /**
  * The title block (§27).
@@ -19,6 +19,8 @@ import type { Department, StatusConfig } from "@/lib/types";
 export default function TitleBlock({
   departments,
   statuses,
+  connectionTypes,
+  typesInUse,
   drawnBy,
   projectCount,
   approvedConnections,
@@ -26,6 +28,9 @@ export default function TitleBlock({
 }: {
   departments: Department[];
   statuses: StatusConfig[];
+  connectionTypes: ConnectionType[];
+  /** Type ids present anywhere in the record, so filtering does not rewrite the key. */
+  typesInUse: string[];
   drawnBy: string;
   projectCount: number;
   approvedConnections: number;
@@ -196,6 +201,27 @@ export default function TitleBlock({
         </p>
       </Key>
 
+      <Key title="Colour = connection type">
+        <div className="space-y-1.5">
+          {connectionTypes
+            .filter((type) => typesInUse.includes(type.type_id))
+            .map((type) => (
+              <LineSample
+                key={type.type_id}
+                dash="7 4"
+                width={1.6}
+                colour={type.color}
+                label={type.type_name}
+              />
+            ))}
+        </div>
+        <p className="note mt-2">
+          Hue says what kind of thing moves along the line; the label says what it is.
+          A connection and its label always share one colour. Only the types
+          actually on this sheet are listed.
+        </p>
+      </Key>
+
       <Key title="Line style = review status">
         <div className="space-y-1.5">
           {/* Dash patterns and widths mirror FlowEdge.tsx exactly. The legend
@@ -206,7 +232,9 @@ export default function TitleBlock({
           <LineSample dash="2 5" width={1.6} label="Not reviewed" />
         </div>
         <p className="note mt-2">
-          Rejected connections are kept in the record but leave the sheet.
+          Drawn without colour here on purpose — style and hue are independent, so
+          any of the three can appear in any of the colours above. Rejected
+          connections are kept in the record but leave the sheet.
         </p>
       </Key>
     </div>
@@ -248,11 +276,15 @@ function LineSample({
   dash,
   width,
   label,
+  colour,
 }: {
   dash: string | undefined;
   width: number;
   label: string;
+  /** Omitted for the review-status samples, which are deliberately achromatic. */
+  colour?: string;
 }) {
+  const stroke = colour ?? (dash ? "var(--color-ink-soft)" : "var(--color-ink)");
   return (
     <div className="flex items-center gap-2.5">
       <svg width="62" height="10" aria-hidden>
@@ -261,7 +293,7 @@ function LineSample({
           y1="5"
           x2="62"
           y2="5"
-          stroke={dash ? "var(--color-ink-soft)" : "var(--color-ink)"}
+          stroke={stroke}
           strokeWidth={width}
           strokeDasharray={dash}
         />
