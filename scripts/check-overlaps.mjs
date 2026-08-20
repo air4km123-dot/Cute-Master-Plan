@@ -111,8 +111,9 @@ for (const c of connections) {
   const placed = placeLabel(path, c.connection_label ?? "", obstacles, { x: labelX, y: labelY });
   const box = labelRect(c.connection_label ?? "", placed.x, placed.y);
 
-  // Only labels that found clear ground are drawn at rest, so an unplaced one
-  // covers nothing. Count what a viewer would actually see.
+  // Every label is drawn, but the label layer sits under the cards, so one that
+  // landed on a card is occluded by it rather than covering the text. What
+  // matters is how many are readable in clear space.
   const hit = placed.clear ? [...cards.values()].filter((card) => overlaps(box, card)) : [];
   if (!placed.clear) hidden++;
   if (hit.length) {
@@ -127,10 +128,10 @@ for (const c of connections) {
 }
 
 console.log(`Connections measured           : ${connections.length}`);
-console.log(`Labels landing on a card       : ${onCard}`);
-console.log(`Labels drawn at rest           : ${connections.length - hidden}`);
-console.log(`Shown only when selected       : ${hidden}`);
-console.log(`Visible labels covering a card : ${onCard}`);
+
+console.log(`Readable in clear space        : ${connections.length - hidden}`);
+console.log(`Tucked behind a card (dimmed)  : ${hidden}`);
+console.log(`Labels burying card text       : ${onCard}`);
 
 if (offenders.length) {
   console.log(`\nLabels that sit over a card (hidden behind it at z-index 2 vs 5):`);

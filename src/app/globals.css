@@ -501,21 +501,21 @@ textarea.field {
 
      0   department zone
      1   connection line        (2 when it touches the selection)
+     2   connection label
      5   project card           (20 when selected)
          card content
-    30   connection label
 
    Cards outrank every connection, and that is the whole mechanism behind "no
    line crosses the text". A line routed past a card is simply painted over by
    it — the card's background is opaque — so nothing has to be re-routed to
    avoid an obstacle. The node z-indexes are set in MasterPlan.tsx; this rule
-   handles the label layer.
+   handles the label layer, which React Flow renders in its own div outside the
+   edge SVG and would otherwise float above everything.
 
-   Labels are the exception to the ordering, and deliberately so: they sit above
-   the cards. They can afford to, because FlowEdge only draws one at rest when it
-   found ground clear of every card — so a resting label has nothing to cover.
-   The crowded ones appear only while their connection is selected, and covering
-   a card is the point at that moment. */
+   Every label is drawn, but the layer sits under the cards. One that found clear
+   ground shows in full; one that did not tucks behind whatever it landed on
+   rather than burying a project name. That is the trade this sheet needs: the
+   label is an annotation, the card is the content. */
 .react-flow .react-flow__edgelabel-renderer {
-  z-index: 30;
+  z-index: 2;
 }

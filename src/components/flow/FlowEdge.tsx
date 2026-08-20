@@ -4,6 +4,7 @@ import {
   EdgeLabelRenderer,
   getSmoothStepPath,
   useInternalNode,
+  useStore,
   type EdgeProps,
 } from "@xyflow/react";
 import { useMemo } from "react";
@@ -39,6 +40,15 @@ import { placeLabel, type Rect } from "./labelPlacement";
  * behind a card is simply hidden by it. Separation from the grid comes from
  * contrast and an opaque label, not from a heavy white casing under the stroke —
  * with 50-odd connections on one sheet that reads as a second set of lines.
+ *
+ * Stroke width is compensated for zoom. SVG scales strokes with the viewport, so
+ * a 1.35px line drawn at Fit Sheet (roughly 0.4×) reaches the eye as half a
+ * pixel and disappears into the grid — which is exactly the "lines look faint
+ * when zoomed out" complaint. Dividing by the zoom keeps the apparent width
+ * constant instead, so the sheet reads the same whether you are looking at one
+ * department or all twelve. It is clamped: below 0.35 the compensation stops, or
+ * a fully zoomed-out sheet would turn back into a mess of fat lines, and above
+ * 1× nothing is added, so zooming in never thickens anything.
  */
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -68,6 +78,9 @@ export const arrowId = (color: string, bold = false) =>
   `air4-arrow-${color.replace(/[^a-zA-Z0-9]/g, "")}${bold ? "-bold" : ""}`;
 
 export default function FlowEdge({ id, source, target, data, selected }: EdgeProps) {
+  // Subscribed rather than passed down: React Flow already re-renders edges on
+  // viewport change, so this costs nothing extra.
+  const zoom = useStore((state) => state.transform[2]);
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
   if (!sourceNode || !targetNode) return null;
@@ -97,7 +110,17 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
   const emphasised = edge.emphasised || selected;
   const accent = edge.accent || FALLBACK_ACCENT;
 
-  const width = emphasised ? 1.9 : edge.reviewState === "CONFIRMED" ? 1.5 : 1.35;
+  // Apparent width is what matters, so divide out the viewport scale.
+  const scale = 1 / Math.min(1, Math.max(0.35, zoom));
+  const base = emphasised ? 1.9 : edge.reviewState === "CONFIRMED" ? 1.5 : 1.35;
+  const width = base * scale;
+  // The dash pattern is in the same user units and shrinks just as fast, so a
+  // dashed line closes up into a solid one when zoomed out — which would erase
+  // the difference between AI-suggested and confirmed architecture. Scale it too.
+  const dash = DASH[edge.reviewState]
+    ?.split(" ")
+    .map((n) => Number(n) * scale)
+    .join(" ");
   const marker = `url(#${arrowId(accent, emphasised)})`;
   // Held back from full strength so the cards stay the loudest thing on the
   // sheet; a selected connection comes up to full.
@@ -111,7 +134,7 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
         fill="none"
         stroke={accent}
         strokeWidth={width}
-        strokeDasharray={DASH[edge.reviewState]}
+        strokeDasharray={dash}
         markerEnd={marker}
         markerStart={edge.bidirectional ? marker : undefined}
         opacity={opacity}
@@ -128,13 +151,13 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
       />
 
       {/*
-        A label is drawn at rest only where it has clear ground. On a sheet this
-        tight most routes have none, and drawing them anyway is what buried the
-        project names. Selecting a connection or a project brings its label back
-        regardless — at that moment covering a card is exactly what was asked
-        for, and only that one label is loud.
+        Every label is drawn. The layer sits *below* the cards, so one that found
+        no clear ground simply tucks behind whatever it lands on instead of
+        burying a project name — and the part that does peek out is dimmed, so it
+        reads as background annotation rather than competing with the card.
+        Labels that found clear space are drawn at full strength.
       */}
-      {!edge.dimmed && edge.label && (placement.clear || emphasised) && (
+      {!edge.dimmed && edge.label && (
         <EdgeLabelRenderer>
           <div
             style={{
@@ -149,7 +172,7 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
               background: `color-mix(in srgb, ${accent} 5%, #ffffff)`,
               borderColor: `color-mix(in srgb, ${accent} ${emphasised ? "80%" : "55%"}, #ffffff)`,
               color: `color-mix(in srgb, ${accent} 72%, #16202a)`,
-              opacity: emphasised ? 1 : 0.94,
+              opacity: emphasised ? 1 : placement.clear ? 0.94 : 0.72,
             }}
             className="edge-label"
           >
