@@ -201,24 +201,29 @@ export default function TitleBlock({
         </p>
       </Key>
 
-      <Key title="Colour = connection type">
-        <div className="space-y-1.5">
+      <Key title="Label colour = connection type">
+        <div className="flex flex-wrap gap-1.5">
           {connectionTypes
             .filter((type) => typesInUse.includes(type.type_id))
             .map((type) => (
-              <LineSample
+              <span
                 key={type.type_id}
-                dash="7 4"
-                width={1.6}
-                colour={type.color}
-                label={type.type_name}
-              />
+                className="edge-label anno"
+                style={{
+                  background: `color-mix(in srgb, ${type.color} 5%, #ffffff)`,
+                  borderColor: `color-mix(in srgb, ${type.color} 55%, #ffffff)`,
+                  color: `color-mix(in srgb, ${type.color} 72%, #16202a)`,
+                }}
+              >
+                {type.type_name}
+              </span>
             ))}
         </div>
         <p className="note mt-2">
-          Hue says what kind of thing moves along the line; the label says what it is.
-          A connection and its label always share one colour. Only the types
-          actually on this sheet are listed.
+          Drawn as the real tags that sit on the lines. The lines themselves are
+          deliberately colourless — with 53 of them, coloured strokes read as
+          noise, so the hue lives where it is actually read. Only the types
+          present on this sheet are listed.
         </p>
       </Key>
 
@@ -232,9 +237,9 @@ export default function TitleBlock({
           <LineSample dash="2 5" width={1.6} label="Not reviewed" />
         </div>
         <p className="note mt-2">
-          Drawn without colour here on purpose — style and hue are independent, so
-          any of the three can appear in any of the colours above. Rejected
-          connections are kept in the record but leave the sheet.
+          Every line is dark neutral; style alone carries the review state, and any
+          style can pair with any label colour above. Rejected connections are
+          kept in the record but leave the sheet.
         </p>
       </Key>
     </div>
@@ -276,15 +281,12 @@ function LineSample({
   dash,
   width,
   label,
-  colour,
 }: {
   dash: string | undefined;
   width: number;
   label: string;
-  /** Omitted for the review-status samples, which are deliberately achromatic. */
-  colour?: string;
 }) {
-  const stroke = colour ?? (dash ? "var(--color-ink-soft)" : "var(--color-ink)");
+  const stroke = dash ? "var(--color-ink-soft)" : "var(--color-ink)";
   return (
     <div className="flex items-center gap-2.5">
       <svg width="62" height="10" aria-hidden>

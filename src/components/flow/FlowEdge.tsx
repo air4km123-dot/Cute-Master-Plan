@@ -16,30 +16,29 @@ import { placeLabel, type Rect } from "./labelPlacement";
  *
  * Visual grammar:
  *
- *   hue                  →  connection type — the family of thing being moved.
+ *   label hue            →  connection type — the family of thing being moved.
  *                           Taken from connection_types.color in the database,
  *                           so the palette is configuration, not a constant
- *                           compiled in here. A line and its label always carry
- *                           the same hue, which is what makes a flow followable
- *                           across a sheet this dense.
+ *                           compiled in here. The line itself is dark neutral:
+ *                           with 53 connections on one sheet, coloured strokes
+ *                           turned the background into noise, so the hue was
+ *                           moved to the label where it is read rather than
+ *                           merely seen.
  *   arrowhead direction  →  direction of flow
  *   inline label         →  what is transferred
  *   line style           →  review status: solid = confirmed architecture,
  *                           dashed = AI suggested, dotted = not reviewed
  *
- * Note this deliberately departs from the original rule that colour was
- * reserved for department and status alone (Addendum V2 §32). Type now carries
- * hue as well, at the customer's request. Department still owns the card accent
- * and status still owns the badge, so the three systems remain readable — but
- * this is the one place the sheet carries a third colour system, and anything
- * added later should not make it a fourth.
+ * Note this departs from the original rule that colour was reserved for
+ * department and status alone (Addendum V2 §32), at the customer's request —
+ * but only the label carries it, so the sheet's lines stay achromatic as the
+ * original grammar intended.
  *
- * Connections are a secondary layer. The card and its text are what the sheet is
- * for, so an edge is drawn thin and slightly held back, and it never covers a
- * card: edges carry a lower z-index than nodes, which means a line passing
- * behind a card is simply hidden by it. Separation from the grid comes from
- * contrast and an opaque label, not from a heavy white casing under the stroke —
- * with 50-odd connections on one sheet that reads as a second set of lines.
+ * Connections are a secondary layer by default: behind the cards, so a line
+ * passing where a card sits is simply hidden by it rather than crossing a
+ * project name. `front` lifts a connection above the cards — either because the
+ * whole sheet has been switched to front, or because this one was clicked. Its
+ * line and its label move together, so a connection is never half in front.
  *
  * Stroke width is compensated for zoom. SVG scales strokes with the viewport, so
  * a 1.35px line drawn at Fit Sheet (roughly 0.4×) reaches the eye as half a
@@ -61,6 +60,10 @@ export interface FlowEdgeData extends Record<string, unknown> {
   accent: string;
   /** Card rectangles the label must not land on. One shared array for all edges. */
   obstacles: Rect[];
+  /** True when this connection should sit above the project cards. */
+  front: boolean;
+  /** Selects this connection when its label is clicked, matching a click on the line. */
+  onSelect?: (connectionId: string) => void;
 }
 
 const DASH: Record<FlowEdgeData["reviewState"], string | undefined> = {
@@ -73,9 +76,9 @@ const DASH: Record<FlowEdgeData["reviewState"], string | undefined> = {
 
 const FALLBACK_ACCENT = "#5a6b78";
 
-/** Marker ids are derived from the colour, so each hue gets its own arrowhead. */
-export const arrowId = (color: string, bold = false) =>
-  `air4-arrow-${color.replace(/[^a-zA-Z0-9]/g, "")}${bold ? "-bold" : ""}`;
+/** The line itself is achromatic; only the label carries the type's hue. */
+const STROKE = "#16202a";
+const STROKE_SOFT = "#3d4a55";
 
 export default function FlowEdge({ id, source, target, data, selected }: EdgeProps) {
   // Subscribed rather than passed down: React Flow already re-renders edges on
@@ -121,7 +124,7 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
     ?.split(" ")
     .map((n) => Number(n) * scale)
     .join(" ");
-  const marker = `url(#${arrowId(accent, emphasised)})`;
+  const marker = `url(#air4-arrow${emphasised ? "-bold" : ""})`;
   // Held back from full strength so the cards stay the loudest thing on the
   // sheet; a selected connection comes up to full.
   const opacity = edge.dimmed ? 0.07 : emphasised ? 1 : 0.7;
@@ -132,7 +135,7 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
         id={id}
         d={path}
         fill="none"
-        stroke={accent}
+        stroke={emphasised ? STROKE : STROKE_SOFT}
         strokeWidth={width}
         strokeDasharray={dash}
         markerEnd={marker}
@@ -160,10 +163,21 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
       {!edge.dimmed && edge.label && (
         <EdgeLabelRenderer>
           <div
+            onClick={(event) => {
+              event.stopPropagation();
+              edge.onSelect?.(id);
+            }}
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              pointerEvents: "none",
+              // Clickable, so selecting a connection by its label works exactly
+              // like clicking the line — which matters most for the crowded ones,
+              // where the label is the only part with any clear ground.
+              pointerEvents: "all",
+              cursor: "pointer",
+              // Moves with its line: both read `front`, so a connection is never
+              // lifted in half.
+              zIndex: edge.front || emphasised ? 40 : 2,
               // Opaque, and that is the point: the label interrupts its own
               // line rather than sitting on top of it, so the text is never read
               // through a stroke. Border and text carry the connection's hue;
@@ -189,33 +203,27 @@ export default function FlowEdge({ id, source, target, data, selected }: EdgePro
 /**
  * Arrowhead definitions, injected once into the flow's SVG.
  *
- * One pair per colour in use. An SVG marker cannot inherit the stroke colour of
- * the path that references it in every browser we care about — `context-stroke`
- * is the tidy answer but is not universally safe — so the markers are generated
- * from the palette instead, which is deterministic and needs no fallback.
+ * Two, not one per colour: the strokes are achromatic now, so an arrowhead only
+ * has to match the weight of the line it caps.
  */
-export function ArrowMarkers({ colors }: { colors: string[] }) {
-  const palette = Array.from(new Set([...colors, FALLBACK_ACCENT]));
-
+export function ArrowMarkers() {
   return (
     <svg style={{ position: "absolute", width: 0, height: 0 }} aria-hidden>
       <defs>
-        {palette.flatMap((color) =>
-          [false, true].map((bold) => (
-            <marker
-              key={arrowId(color, bold)}
-              id={arrowId(color, bold)}
-              viewBox="0 0 10 10"
-              refX="9"
-              refY="5"
-              markerWidth={bold ? 8 : 7}
-              markerHeight={bold ? 8 : 7}
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
-            </marker>
-          ))
-        )}
+        {[false, true].map((bold) => (
+          <marker
+            key={String(bold)}
+            id={`air4-arrow${bold ? "-bold" : ""}`}
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth={bold ? 8 : 7}
+            markerHeight={bold ? 8 : 7}
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={bold ? STROKE : STROKE_SOFT} />
+          </marker>
+        ))}
       </defs>
     </svg>
   );

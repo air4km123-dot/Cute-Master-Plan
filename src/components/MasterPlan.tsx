@@ -50,6 +50,15 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
   const [layoutDirty, setLayoutDirty] = useState(false);
+  /**
+   * Whether every connection sits above the project cards.
+   *
+   * Back by default: the cards are the content, and 53 lines over the top of
+   * them is what made the sheet unreadable. Front is for the moment you want to
+   * trace the architecture instead of read the projects. Either way, clicking a
+   * single connection lifts that one on its own.
+   */
+  const [connectionsFront, setConnectionsFront] = useState(false);
   const positions = useRef(new Map<string, { x: number; y: number }>());
 
   const editing = mode === "EDIT";
@@ -247,10 +256,17 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
           target: connection.target_project_id,
           type: "flow",
           selected: selectedConnection === connection.connection_id,
-          // Below the cards (5) and above the department zones (0). A selected
-          // edge lifts clear of its neighbours but still never covers a card:
-          // if a line has to pass where a card is, the card wins and hides it.
-          zIndex: touchesSelection ? 2 : 1,
+          // Below the cards (5) by default, so a line crossing where a card
+          // sits is hidden by it rather than cutting through a project name.
+          // Lifted above them (40) when the whole sheet is switched to front or
+          // when this connection is the one being examined — and its label uses
+          // the identical test, so the two never separate.
+          zIndex:
+            connectionsFront || selectedConnection === connection.connection_id
+              ? 40
+              : touchesSelection
+                ? 2
+                : 1,
           data: {
             label: connection.connection_label,
             reviewState:
@@ -265,6 +281,8 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
             emphasised: touchesSelection || selectedConnection === connection.connection_id,
             accent: connectionColours.get(connection.connection_type) ?? "",
             obstacles: cardObstacles,
+            front: connectionsFront || selectedConnection === connection.connection_id,
+            onSelect: setSelectedConnection,
           },
         };
       }),
@@ -275,6 +293,7 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
       focusSet,
       connectionColours,
       cardObstacles,
+      connectionsFront,
     ]
   );
 
@@ -453,13 +472,26 @@ function Sheet({ initialData }: { initialData: MasterPlanData }) {
           )}
           <SyncButton canSync={isAdmin} onSynced={refresh} />
 
+          <button
+            className={connectionsFront ? "btn btn-solid" : "btn btn-quiet"}
+            onClick={() => setConnectionsFront((front) => !front)}
+            aria-pressed={connectionsFront}
+            title={
+              connectionsFront
+                ? "Connections are drawn over the project cards"
+                : "Connections are drawn behind the project cards"
+            }
+          >
+            {connectionsFront ? "Connections ↑ front" : "Connections ↓ back"}
+          </button>
+
           <button className="btn btn-quiet" onClick={() => fitView({ padding: 0.12 })}>
             Fit sheet
           </button>
         </div>
 
         <div className="flex-1 min-h-0 relative">
-          <ArrowMarkers colors={[...connectionColours.values()]} />
+          <ArrowMarkers />
           <ReactFlow
             nodes={flowNodes}
             edges={edges}

@@ -504,6 +504,9 @@ textarea.field {
      2   connection label
      5   project card           (20 when selected)
          card content
+    40   a connection lifted to the front — its line and label together,
+         either because the whole sheet was switched to front or because
+         that one connection was clicked
 
    Cards outrank every connection, and that is the whole mechanism behind "no
    line crosses the text". A line routed past a card is simply painted over by
@@ -517,5 +520,15 @@ textarea.field {
    rather than burying a project name. That is the trade this sheet needs: the
    label is an annotation, the card is the content. */
 .react-flow .react-flow__edgelabel-renderer {
-  z-index: 2;
+  /*
+     auto, not a number, and that is load-bearing.
+
+     A numeric z-index here would make this container its own stacking context,
+     trapping every label at one depth — and a single connection could then never
+     be lifted above the cards while its neighbours stayed behind. With auto the
+     container stacks nothing of its own, so each label's z-index is resolved
+     against the viewport, alongside the nodes and the edge layers. FlowEdge sets
+     it per label: 2 at rest, 40 when that connection is in front.
+  */
+  z-index: auto;
 }
