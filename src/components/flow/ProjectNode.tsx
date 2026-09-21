@@ -36,6 +36,10 @@ export function shortDate(value: string | null): string | null {
 
 export default function ProjectNode({ data }: NodeProps) {
   const { project, status, deptColor, selected, faded } = data as unknown as ProjectNodeData;
+  // The department's own reported figure wins when the sheet has one; Air4's
+  // progress is the fallback. Neither overwrites the other in the database.
+  const fromSheet = typeof project.sheet_progress === "number";
+  const progress = Math.round(fromSheet ? (project.sheet_progress as number) : project.progress_percent);
 
   const isFuture = project.project_type === "FUTURE_ADDON";
   const isBlocked = project.status_id === "BLOCKED";
@@ -86,13 +90,25 @@ export default function ProjectNode({ data }: NodeProps) {
 
         {/* Progress — bar and number, always both (§7) */}
         <div className="flex items-center gap-2">
-          <div className="scale flex-1" role="img" aria-label={`Progress ${project.progress_percent}%`}>
-            <div className="scale-fill" style={{ width: `${project.progress_percent}%` }} />
+          <div
+            className="scale flex-1"
+            role="img"
+            aria-label={`Progress ${progress}%`}
+            title={
+              fromSheet
+                ? `${progress}% · reported in รายละเอียด Project` +
+                  (project.sheet_checkpoints ? ` · CP ${project.sheet_checkpoints}` : "")
+                : project.sheet_progress_name
+                  ? `${progress}% · Air4 progress (the % cell is blank in รายละเอียด Project)`
+                  : `${progress}% · Air4 progress (no row in รายละเอียด Project)`
+            }
+          >
+            <div className="scale-fill" style={{ width: `${progress}%` }} />
             <span className="scale-tick" style={{ left: "25%" }} />
             <span className="scale-tick" style={{ left: "50%" }} />
             <span className="scale-tick" style={{ left: "75%" }} />
           </div>
-          <span className="data font-bold w-8 text-right">{project.progress_percent}%</span>
+          <span className="data font-bold w-8 text-right">{progress}%</span>
         </div>
 
         <div className="mt-1.5 flex items-center justify-between gap-2">

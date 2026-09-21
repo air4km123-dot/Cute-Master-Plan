@@ -5,6 +5,7 @@ import type { InValue, Transaction } from "@libsql/client";
 import { all, get, run, transaction, txGet } from "./db";
 import { recordAudit } from "./audit";
 import { syncDepartmentProgress, type DepartmentProgressResult } from "./departmentProgress";
+import { syncProjectProgress, type ProjectProgressResult } from "./projectProgress";
 import { fetchSheetGrid, sheetConfig, type SheetConfig, type SheetGrid } from "./googleSheets";
 import type { Project, SessionUser } from "./types";
 
@@ -142,6 +143,8 @@ export interface ApplyResult {
   plan: SyncPlan;
   /** Department % Progress from รวมลิงก์ชีต; `error` if that tab could not be read. */
   departmentProgress: DepartmentProgressResult | { error: string };
+  /** Per-project % Progress from รายละเอียด Project; `error` if that tab could not be read. */
+  projectProgress: ProjectProgressResult | { error: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -1015,6 +1018,15 @@ export async function applyGoogleSheetSync(actor: SessionUser): Promise<ApplyRes
     };
   }
 
+  let projectProgress: ApplyResult["projectProgress"];
+  try {
+    projectProgress = await syncProjectProgress();
+  } catch (error) {
+    projectProgress = {
+      error: error instanceof Error ? error.message : "Could not read the project detail tab.",
+    };
+  }
+
   return {
     runId: plan.runId,
     appliedProjects,
@@ -1022,6 +1034,7 @@ export async function applyGoogleSheetSync(actor: SessionUser): Promise<ApplyRes
     skippedBlocked: plan.summary.blocked,
     plan,
     departmentProgress,
+    projectProgress,
   };
 }
 

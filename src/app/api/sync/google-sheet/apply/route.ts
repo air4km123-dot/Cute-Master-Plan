@@ -28,6 +28,7 @@ export async function POST() {
       skippedBlocked: result.skippedBlocked,
       plan: result.plan,
       departmentProgress: result.departmentProgress,
+      projectProgress: result.projectProgress,
       status: await syncStatus(),
     };
   });

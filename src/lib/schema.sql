@@ -265,6 +265,19 @@ CREATE TABLE IF NOT EXISTS sync_conflicts (
 
 CREATE INDEX IF NOT EXISTS idx_sync_conflicts_run  ON sync_conflicts (run_id);
 
+-- Per-project % Progress mirrored from the รายละเอียด Project tab (column E).
+-- Separate from projects.progress_percent, which the sheet may never write.
+CREATE TABLE IF NOT EXISTS project_sheet_progress (
+  project_id       TEXT PRIMARY KEY,
+  progress_percent REAL,
+  checkpoints      TEXT,
+  sheet_name       TEXT,
+  sheet_row        INTEGER,
+  match_method     TEXT,
+  source_tab       TEXT,
+  updated_at       TEXT NOT NULL
+);
+
 -- Department % Progress mirrored from the รวมลิงก์ชีต tab (column E). Kept apart
 -- from projects.progress_percent, which the sheet may never write.
 CREATE TABLE IF NOT EXISTS department_progress (

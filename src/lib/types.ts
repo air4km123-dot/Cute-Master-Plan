@@ -98,6 +98,13 @@ export interface Project {
   source_state: SourceState;
   source_last_seen_at: string | null;
   source_updated_at: string | null;
+
+  // From project_sheet_progress — the department's own reported figure, or null
+  // when the project has no row in the รายละเอียด Project tab.
+  sheet_progress?: number | null;
+  sheet_checkpoints?: string | null;
+  sheet_progress_name?: string | null;
+  sheet_progress_updated_at?: string | null;
 }
 
 /**

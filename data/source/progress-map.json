@@ -1,0 +1,21 @@
+{
+  "_source": "Google Sheet 1zby_FYFWKHXDLP5Q6Z74XD3A7Onpxvs7zsuuV-5kc-0 — tab 'รายละเอียด Project' (gid 930300203), column B 'ชื่อ Project'",
+  "_note": "Each department names its projects its own way in its GROWS tracking sheet, and that tab carries no Project ID. Projects whose sheet name starts with their Air4 name are matched automatically; the ones listed here are not, and are pinned to a sheet row by name. A pin that stops matching (the department renamed the row) is reported as unmatched and the card simply shows no sheet progress — it never guesses. 'confidence' records how sure the original mapping was; MEDIUM ones should be confirmed by the department.",
+  "map": {
+    "CS-001": { "sheet_name": "พัฒนาระบบวิเคราะห์ยอดขายโตโยต้าสำหรับผู้บริหาร (Dashboard & Analysis)", "confidence": "HIGH", "why": "Only CS row; a sales dashboard, same owner. CS-002 is the lead scraper." },
+    "AS-001": { "sheet_name": "Digital & Print Media Catalog", "confidence": "MEDIUM", "why": "Shared sales library ≈ media catalog; the other AS row is clearly AS-002." },
+    "AS-002": { "sheet_name": "เชื่อมข้อมูลจากใบคุมขอเปิดบิลเข้าสู่ใบสต็อกการ์ดลูกค้าอัตโนมัติ", "confidence": "HIGH", "why": "Brief names ใบขอบิลขาย and Stock Card." },
+    "IO-001": { "sheet_name": "Dynamic Before–After Reference", "confidence": "HIGH", "why": "Before–After library." },
+    "IO-002": { "sheet_name": "AirCare Global Dashboard Project", "confidence": "HIGH", "why": "The IO operations dashboard." },
+    "IO-003": { "sheet_name": "OEM Quickfix Selling Kit", "confidence": "HIGH", "why": "Spelling variant of OEM QuickFit Selling Kit." },
+    "IS-001": { "sheet_name": "ระบบลงทะเบียนโปรแกรมและข้อมูล (Data Security Registration)", "confidence": "HIGH", "why": "Data security." },
+    "IS-002": { "sheet_name": "โครงการคลังกลางไฟล์กราฟิกและเทมเพลต พร้อมระบบค้นหาและแสดงตัวอย่าง (Thumbnail)", "confidence": "HIGH", "why": "Graphic asset library, same owner." },
+    "IS-003": { "sheet_name": "โครงการ Security Awareness และ Phishing Simulation", "confidence": "MEDIUM", "why": "The remaining awareness programme; Air4 calls it AI Awareness." },
+    "IS-004": { "sheet_name": "Learning Hub Platform", "confidence": "HIGH", "why": "Learning Hub." },
+    "PM-001": { "sheet_name": "SMART PR WITH BOM ON GOOGLE", "confidence": "HIGH", "why": "Smart PR & BOM planning." },
+    "B2C-001": { "sheet_name": "สถิติการล้างแอร์รถยนต์ของช่าง / Dashboard", "confidence": "MEDIUM", "why": "Back-office technician statistics — the backend project." },
+    "B2C-002": { "sheet_name": "โปรแกรมใช้ในการข้อมูล/เก็บเงิน รูปแบบใบเสร็จ", "confidence": "MEDIUM", "why": "Payment and receipt program — the POS front end." },
+    "SV-001": { "sheet_name": "ออกแบบเป็นระบบเว็บ “ศูนย์บริการออนไลน์”", "confidence": "MEDIUM", "why": "Same owner; online service-centre workflow." },
+    "SV-002": { "sheet_name": "สรุปยอดขายของเเต่ละศูนย์ในเเต่ละเดือนเพื่อเปรียบเทียบกับจำนวนเครื่องเพื่อให้เพียงพอในการใช้งาน", "confidence": "HIGH", "why": "Sales against machine count = capacity; same owner." }
+  }
+}

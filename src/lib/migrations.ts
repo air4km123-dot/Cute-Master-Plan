@@ -118,6 +118,22 @@ const TABLES: string[] = [
      updated_at       TEXT NOT NULL
    )`,
 
+  /**
+   * Per-project % Progress as each department reports it, mirrored from the
+   * รายละเอียด Project tab (column E). Separate from projects.progress_percent,
+   * which the sheet may never write; the card prefers this when present.
+   */
+  `CREATE TABLE IF NOT EXISTS project_sheet_progress (
+     project_id       TEXT PRIMARY KEY,
+     progress_percent REAL,
+     checkpoints      TEXT,
+     sheet_name       TEXT,
+     sheet_row        INTEGER,
+     match_method     TEXT,
+     source_tab       TEXT,
+     updated_at       TEXT NOT NULL
+   )`,
+
   `CREATE INDEX IF NOT EXISTS idx_sync_conflicts_run  ON sync_conflicts (run_id)`,
   `CREATE INDEX IF NOT EXISTS idx_sync_conflicts_open ON sync_conflicts (resolution, severity)`,
 ];

@@ -35,15 +35,26 @@ export function getConnectionTypes(): Promise<ConnectionType[]> {
   );
 }
 
+/** Projects joined to the department-reported progress from the sheet. */
+const PROJECT_SELECT = `
+  SELECT p.*,
+         sp.progress_percent AS sheet_progress,
+         sp.checkpoints      AS sheet_checkpoints,
+         sp.sheet_name       AS sheet_progress_name,
+         sp.updated_at       AS sheet_progress_updated_at
+    FROM projects p
+    LEFT JOIN project_sheet_progress sp ON sp.project_id = p.project_id`;
+
 export function getProjects(): Promise<Project[]> {
   return all<Project>(
-    `SELECT * FROM projects WHERE active = 1
-      ORDER BY dept_code, CAST(SUBSTR(project_id, INSTR(project_id, '-') + 1) AS INTEGER)`
+    `${PROJECT_SELECT}
+      WHERE p.active = 1
+      ORDER BY p.dept_code, CAST(SUBSTR(p.project_id, INSTR(p.project_id, '-') + 1) AS INTEGER)`
   );
 }
 
 export function getProject(projectId: string): Promise<Project | undefined> {
-  return get<Project>(`SELECT * FROM projects WHERE project_id = ?`, [projectId]);
+  return get<Project>(`${PROJECT_SELECT} WHERE p.project_id = ?`, [projectId]);
 }
 
 /** Rejected connections stay in the database but leave the working diagram. */

@@ -57,6 +57,11 @@ export default function ProjectInspector({
   const canEdit = editable && editing;
 
   const [draft, setDraft] = useState(() => toDraft(project));
+  // The card and the inspector must agree: the sheet's reported figure when the
+  // department has one, Air4's own otherwise.
+  const shownProgress = Math.round(
+    typeof project.sheet_progress === "number" ? project.sheet_progress : project.progress_percent
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -193,10 +198,29 @@ export default function ProjectInspector({
             <div className="flex items-center gap-3">
               <StatusBadge project={project} statuses={statuses} />
               <div className="scale flex-1">
-                <div className="scale-fill" style={{ width: `${project.progress_percent}%` }} />
+                <div className="scale-fill" style={{ width: `${shownProgress}%` }} />
               </div>
-              <span className="data font-bold">{project.progress_percent}%</span>
+              <span className="data font-bold">{shownProgress}%</span>
             </div>
+          )}
+
+          {/* Say where the number came from. The sheet figure and Air4's own are
+              kept separately, and a reader should never have to guess which one
+              the bar is showing. */}
+          {typeof project.sheet_progress === "number" && (
+            <p className="note mt-2.5">
+              Progress reported in <span className="font-semibold">รายละเอียด Project</span>
+              {project.sheet_checkpoints ? <> · CP {project.sheet_checkpoints}</> : null}
+              {project.sheet_progress_name && project.sheet_progress_name !== project.project_name ? (
+                <>
+                  {" "}· listed there as{" "}
+                  <span className="font-semibold">{project.sheet_progress_name}</span>
+                </>
+              ) : null}
+              {project.progress_percent !== Math.round(project.sheet_progress)
+                ? <> · Air4 progress {project.progress_percent}%</>
+                : null}
+            </p>
           )}
 
           {project.status_original && (
