@@ -105,6 +105,19 @@ const TABLES: string[] = [
      resolved_at     TEXT
    )`,
 
+  /**
+   * Department-level % Progress as the departments report it, mirrored from the
+   * รวมลิงก์ชีต tab (column E). Deliberately separate from projects.progress_percent,
+   * which is Air4's own per-project figure that the sheet may never write.
+   */
+  `CREATE TABLE IF NOT EXISTS department_progress (
+     dept_code        TEXT PRIMARY KEY,
+     progress_percent REAL NOT NULL,
+     source_label     TEXT,
+     source_tab       TEXT,
+     updated_at       TEXT NOT NULL
+   )`,
+
   `CREATE INDEX IF NOT EXISTS idx_sync_conflicts_run  ON sync_conflicts (run_id)`,
   `CREATE INDEX IF NOT EXISTS idx_sync_conflicts_open ON sync_conflicts (resolution, severity)`,
 ];

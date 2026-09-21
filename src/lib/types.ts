@@ -30,6 +30,11 @@ export interface SessionUser {
 }
 
 export interface Department {
+  /** From department_progress: the department's own reported average, or null. */
+  sheet_progress?: number | null;
+  /** The sheet row it came from — "PM/B2C" when two departments share one figure. */
+  sheet_progress_label?: string | null;
+  sheet_progress_updated_at?: string | null;
   dept_code: string;
   dept_name_th: string;
   dept_name_en: string;

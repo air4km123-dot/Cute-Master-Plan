@@ -256,15 +256,22 @@ async function fetchFromWebApp(config: SheetConfig): Promise<string[][]> {
 // ---------------------------------------------------------------------------
 
 /**
- * Read the configured tab. Returns the raw grid; interpreting it into projects
- * is googleSheetsSync's job, so this stays a thin transport layer.
+ * Read a tab. Returns the raw grid; interpreting it is the caller's job, so this
+ * stays a thin transport layer.
+ *
+ * `tab` defaults to the project tab. Passing another name reads that tab from
+ * the same spreadsheet with the same credentials — used for the department
+ * progress roll-up in รวมลิงก์ชีต.
  */
-export async function fetchSheetGrid(): Promise<SheetGrid> {
-  const config = sheetConfig();
+export async function fetchSheetGrid(tab?: string): Promise<SheetGrid> {
+  const base = sheetConfig();
+  const config: SheetConfig = tab ? { ...base, tab } : base;
   if (!config.mode) throw new SheetAccessError(config.problem!);
 
   if (config.mode === "FIXTURE") {
-    return { rows: readFixture(), firstRowNumber: 1, config };
+    // The fixture is a snapshot of the project tab only. Any other tab reads as
+    // empty, so an offline run skips it instead of misreading project rows.
+    return { rows: tab ? [] : readFixture(), firstRowNumber: 1, config };
   }
 
   if (config.mode === "GAS_WEBAPP") {

@@ -4,6 +4,7 @@ import path from "node:path";
 import type { InValue, Transaction } from "@libsql/client";
 import { all, get, run, transaction, txGet } from "./db";
 import { recordAudit } from "./audit";
+import { syncDepartmentProgress, type DepartmentProgressResult } from "./departmentProgress";
 import { fetchSheetGrid, sheetConfig, type SheetConfig, type SheetGrid } from "./googleSheets";
 import type { Project, SessionUser } from "./types";
 
@@ -139,6 +140,8 @@ export interface ApplyResult {
   appliedFields: number;
   skippedBlocked: number;
   plan: SyncPlan;
+  /** Department % Progress from รวมลิงก์ชีต; `error` if that tab could not be read. */
+  departmentProgress: DepartmentProgressResult | { error: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -997,12 +1000,28 @@ export async function applyGoogleSheetSync(actor: SessionUser): Promise<ApplyRes
     );
   });
 
+  /*
+    Department progress rides along with every apply — the button, the /sync
+    console and the daily scheduler all reach it — but outside the transaction
+    and behind a catch. It is a second tab; a problem reading it must never undo
+    or block the project sync that has already committed.
+  */
+  let departmentProgress: ApplyResult["departmentProgress"];
+  try {
+    departmentProgress = await syncDepartmentProgress();
+  } catch (error) {
+    departmentProgress = {
+      error: error instanceof Error ? error.message : "Could not read the progress tab.",
+    };
+  }
+
   return {
     runId: plan.runId,
     appliedProjects,
     appliedFields,
     skippedBlocked: plan.summary.blocked,
     plan,
+    departmentProgress,
   };
 }
 

@@ -27,6 +27,7 @@ export async function POST() {
       appliedFields: result.appliedFields,
       skippedBlocked: result.skippedBlocked,
       plan: result.plan,
+      departmentProgress: result.departmentProgress,
       status: await syncStatus(),
     };
   });

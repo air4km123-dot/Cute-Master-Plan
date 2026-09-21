@@ -76,6 +76,8 @@ export async function POST(request: Request) {
       appliedFields: result.appliedFields,
       skippedBlocked: result.skippedBlocked,
       summary: result.plan.summary,
+      // Shown in the GitHub Actions run summary, so a broken progress tab is visible.
+      departmentProgress: result.departmentProgress,
     });
   } catch (error) {
     const message = error instanceof SheetAccessError ? error.message : "Scheduled sync failed.";

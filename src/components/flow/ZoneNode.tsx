@@ -35,6 +35,28 @@ export default function ZoneNode({ data }: NodeProps) {
             {dept.dept_name_th}
           </span>
         </div>
+        {typeof dept.sheet_progress === "number" && (
+          <div
+            className="px-3 flex flex-col justify-center border-l border-rule"
+            title={
+              `Average % Progress reported by the department (รวมลิงก์ชีต, column E)` +
+              (dept.sheet_progress_label && dept.sheet_progress_label !== dept.dept_code
+                ? ` — shared row "${dept.sheet_progress_label}"`
+                : "")
+            }
+          >
+            <span className="data font-bold leading-none">
+              {Math.round(dept.sheet_progress)}%
+            </span>
+            {/* A combined row is labelled, so PM and B2C are not read as two
+                independent figures that happen to match. */}
+            <span className="anno leading-none mt-0.5" style={{ fontSize: 8 }}>
+              {dept.sheet_progress_label && dept.sheet_progress_label !== dept.dept_code
+                ? dept.sheet_progress_label
+                : "avg"}
+            </span>
+          </div>
+        )}
         <div className="px-3 flex items-center border-l border-rule">
           <span className="data" style={{ color: "var(--color-ink-soft)" }}>
             {shown === count ? count : `${shown}/${count}`}

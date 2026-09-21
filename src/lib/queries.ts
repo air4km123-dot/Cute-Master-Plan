@@ -13,7 +13,16 @@ import type {
 } from "./types";
 
 export function getDepartments(): Promise<Department[]> {
-  return all<Department>(`SELECT * FROM departments WHERE active = 1 ORDER BY display_order`);
+  return all<Department>(
+    `SELECT d.*,
+            dp.progress_percent AS sheet_progress,
+            dp.source_label     AS sheet_progress_label,
+            dp.updated_at       AS sheet_progress_updated_at
+       FROM departments d
+       LEFT JOIN department_progress dp ON dp.dept_code = d.dept_code
+      WHERE d.active = 1
+      ORDER BY d.display_order`
+  );
 }
 
 export function getStatuses(): Promise<StatusConfig[]> {
